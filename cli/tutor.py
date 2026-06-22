@@ -9,13 +9,13 @@ reminders. See ``--help`` on any subcommand.
 Word payload (for ``add-word``), JSON:
     {
       "lemma": "então",
-      "gloss": "ну / тогда / значит",
+      "gloss": "well / then / so",
       "pos": "adverb", "topic": "small-talk", "priority": 2,
       "card": "# ENTÃO\\n...markdown card...",
       "variations": [
         {"pt": "Então, o que você acha?",
-         "gloss": "Ну, что ты думаешь?",
-         "context": "Утром на работе"},
+         "gloss": "Well, what do you think?",
+         "context": "Morning at work"},
         ... up to 10 ...
       ]
     }
@@ -145,13 +145,13 @@ def cmd_due_today(args) -> None:
     on = _parse_date(args.on)
     rows = db.due_reviews(on)
     if not rows:
-        print("Сегодня к повторению ничего нет." if not args.json_out else "[]")
+        print("Nothing to review today." if not args.json_out else "[]")
         return
     if args.json_out:
         print(json.dumps(rows, ensure_ascii=False, default=str))
         return
     for r in rows:
-        print(f"- [{r['interval_day']}д] {r['target_lemma']} — {r['gloss']} "
+        print(f"- [{r['interval_day']}d] {r['target_lemma']} — {r['gloss']} "
               f"(due {r['due_date']}) → course/words/{r['slug']}.md")
 
 
@@ -233,7 +233,7 @@ def cmd_commands(args) -> None:
     paths.ensure_dirs()
     md = paths.COMMANDS_MD
     lines = md.read_text(encoding="utf-8").splitlines() if md.exists() else \
-        ["# Пользовательские команды", "", "| alias | действие |", "|---|---|"]
+        ["# Custom commands", "", "| alias | action |", "|---|---|"]
     if args.action == "add":
         lines.append(f"| {args.alias} | {args.target} |")
         md.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -297,7 +297,7 @@ def _minimal_card(payload: dict, slug: str) -> str:
         ctx = f" _( {v['context']} )_" if v.get("context") else ""
         lines.append(f"- {v['pt']} — {v.get('gloss', '')}{ctx}")
     if payload.get("topic"):
-        lines += ["", f"Связано: [[themes/{wiki.slugify(payload['topic'])}]], [[index]]"]
+        lines += ["", f"Related: [[themes/{wiki.slugify(payload['topic'])}]], [[index]]"]
     return "\n".join(lines)
 
 

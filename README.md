@@ -17,10 +17,9 @@ pip install -r requirements.txt          # PyYAML, requests (+ ffmpeg on PATH)
 python3 cli/tutor.py setup --interface en --tts system --profile skill-only
 ```
 
-Then open the skill in Claude and say e.g. *"teach me Brazilian Portuguese"*.
-On first run the tutor asks your interface language, runs a short diagnostic,
-agrees a learning plan, and starts. All slash commands are in English (see
-below); all CLI subcommands are in English too.
+Then open the skill in Claude and say something like *"teach me Brazilian
+Portuguese"*. On first run the tutor asks your interface language, runs a short
+diagnostic, agrees a learning plan, and starts.
 
 ## How it works
 
@@ -43,24 +42,25 @@ below); all CLI subcommands are in English too.
 
 ## Three deployment profiles
 
-### A — skill + database (nothing runs)
+### A — skill + database
 ```
-python3 cli/tutor.py setup --interface ru --tts system --profile skill-only
+python3 cli/tutor.py setup --interface en --tts system --profile skill-only
 ```
-Use the skill in Claude. See due reviews with `/review`. No Telegram.
+Use the skill in Claude. See due reviews with `/review`. Nothing runs in the
+background; no Telegram.
 
-### B — skill + local notifier (this Mac)
+### B — skill + local notifier
 ```
-python3 cli/tutor.py setup --interface ru --tts system --profile local-notifier \
+python3 cli/tutor.py setup --interface en --tts system --profile local-notifier \
     --enable-telegram --telegram-chat <YOUR_CHAT_ID>
 export TELEGRAM_BOT_TOKEN=...        # from @BotFather
 ```
 Install the daily reminder via `deploy/launchd/com.tutor.notifier.plist`
-(edit the paths) or `deploy/cron.example`. Reminders arrive when the Mac is on.
+or `deploy/cron.example`. Reminders arrive when the machine is on.
 
-### C — skill + remote notifier (24/7, SSH host)
-Author locally; words travel to the host via a private git repo (text bundle),
-audio via Telegram `file_id`. On the host, set `TELEGRAM_BOT_TOKEN`, then:
+### C — skill + remote notifier
+Author locally; words travel to the host via a private git repo, audio via
+Telegram `file_id`. On the host, set `TELEGRAM_BOT_TOKEN`, then:
 ```
 python3 cli/tutor.py deploy --ssh user@host --send-time 09:00
 ```
@@ -70,7 +70,7 @@ safe to share (no secrets).
 
 ## Commands
 
-**In Claude (slash commands — always English):**
+**Slash commands (in Claude):**
 
 | Command | What |
 |---|---|
@@ -81,7 +81,7 @@ safe to share (no secrets).
 | `/commands` | Manage custom hotkeys |
 | `/situation [place]` · `/pronounce [phrase]` | Role-play · pronunciation |
 
-**CLI (`python3 cli/tutor.py <command>`):**
+**CLI commands** (`python3 cli/tutor.py <command>`):
 
 | Command | What |
 |---|---|

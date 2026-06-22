@@ -64,7 +64,7 @@ def telegram_enabled() -> bool:
 
 def telegram_chat_id() -> str | None:
     cid = get("telegram.chat_id")
-    return str(cid) if cid not in (None, "", "<ваш chat_id>") else None
+    return str(cid) if cid not in (None, "", "<your chat_id>") else None
 
 
 def telegram_token() -> str | None:

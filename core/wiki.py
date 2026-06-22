@@ -34,32 +34,32 @@ def ensure_scaffold(interface_language: str | None = None) -> None:
     if not paths.COURSE_INDEX.exists():
         _write(
             paths.COURSE_INDEX,
-            f"# Курс бразильского португальского — индекс\n\n"
-            f"- Язык интерфейса: **{lang}**\n"
-            f"- [[plan|План обучения]]\n"
-            f"- [[progress|Прогресс]]\n\n"
-            f"## Слова\n\n_пока пусто_\n\n"
-            f"## Грамматика\n\n_пока пусто_\n\n"
-            f"## Темы\n\n_пока пусто_\n",
+            f"# Brazilian Portuguese course — index\n\n"
+            f"- Interface language: **{lang}**\n"
+            f"- [[plan|Learning plan]]\n"
+            f"- [[progress|Progress]]\n\n"
+            f"## Words\n\n_empty_\n\n"
+            f"## Grammar\n\n_empty_\n\n"
+            f"## Themes\n\n_empty_\n",
         )
     if not paths.COURSE_PLAN.exists():
         _write(
             paths.COURSE_PLAN,
-            "# План обучения\n\n_Согласуйте план с учеником и заполните этапы._\n\n"
-            "Связано: [[index]], [[progress]]\n",
+            "# Learning plan\n\n_Agree the plan with the learner and fill in the stages._\n\n"
+            "Related: [[index]], [[progress]]\n",
         )
     if not paths.COURSE_PROGRESS.exists():
         _write(
             paths.COURSE_PROGRESS,
-            "# Прогресс\n\n- Текущий этап: —\n- Выучено слов: 0\n- В процессе: 0\n\n"
-            "Связано: [[index]], [[plan]]\n",
+            "# Progress\n\n- Current stage: —\n- Words known: 0\n- Words in progress: 0\n\n"
+            "Related: [[index]], [[plan]]\n",
         )
     if not paths.PROFILE_MD.exists():
         _write(
             paths.PROFILE_MD,
-            f"# Профиль ученика\n\n- Язык интерфейса: {lang}\n- Город/штат: —\n"
-            f"- Как давно в Бразилии: —\n- Регион/диалект: —\n- Темп: —\n"
-            f"- Цели: —\n\n## Зоны паники\n\n- —\n",
+            f"# Learner profile\n\n- Interface language: {lang}\n- City/state: —\n"
+            f"- Time in Brazil: —\n- Region/dialect: —\n- Pace: —\n"
+            f"- Goals: —\n\n## Panic zones\n\n- —\n",
         )
 
 
@@ -85,7 +85,7 @@ def read_word_card(slug: str) -> str | None:
 def append_session(markdown: str, when: date | None = None) -> Path:
     when = when or date.today()
     path = paths.SESSIONS_DIR / f"{when.isoformat()}.md"
-    header = f"# Занятие {when.isoformat()}\n\n" if not path.exists() else "\n---\n\n"
+    header = f"# Session {when.isoformat()}\n\n" if not path.exists() else "\n---\n\n"
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(header + markdown.rstrip() + "\n")
     return path
@@ -112,20 +112,20 @@ def rebuild_index(interface_language: str | None = None) -> Path:
 
     def section(title: str, prefix: str, stems: list[str]) -> str:
         if not stems:
-            return f"## {title}\n\n_пока пусто_\n"
+            return f"## {title}\n\n_empty_\n"
         items = "\n".join(f"- [[{prefix}/{s}]]" for s in stems)
         return f"## {title}\n\n{items}\n"
 
     body = (
-        f"# Курс бразильского португальского — индекс\n\n"
-        f"- Язык интерфейса: **{lang}**\n"
-        f"- [[plan|План обучения]]\n"
-        f"- [[progress|Прогресс]]\n\n"
-        + section("Слова", "words", _list_stems(paths.WORDS_DIR))
+        f"# Brazilian Portuguese course — index\n\n"
+        f"- Interface language: **{lang}**\n"
+        f"- [[plan|Learning plan]]\n"
+        f"- [[progress|Progress]]\n\n"
+        + section("Words", "words", _list_stems(paths.WORDS_DIR))
         + "\n"
-        + section("Грамматика", "grammar", _list_stems(paths.GRAMMAR_DIR))
+        + section("Grammar", "grammar", _list_stems(paths.GRAMMAR_DIR))
         + "\n"
-        + section("Темы", "themes", _list_stems(paths.THEMES_DIR))
+        + section("Themes", "themes", _list_stems(paths.THEMES_DIR))
     )
     _write(paths.COURSE_INDEX, body)
     return paths.COURSE_INDEX
@@ -133,12 +133,12 @@ def rebuild_index(interface_language: str | None = None) -> Path:
 
 def update_progress(stage: str, known: int, learning: int, due_today: int) -> Path:
     body = (
-        f"# Прогресс\n\n"
-        f"- Текущий этап: {stage or '—'}\n"
-        f"- Выучено слов: {known}\n"
-        f"- В процессе: {learning}\n"
-        f"- К повторению сегодня: {due_today}\n\n"
-        f"Связано: [[index]], [[plan]]\n"
+        f"# Progress\n\n"
+        f"- Current stage: {stage or '—'}\n"
+        f"- Words known: {known}\n"
+        f"- Words in progress: {learning}\n"
+        f"- Due today: {due_today}\n\n"
+        f"Related: [[index]], [[plan]]\n"
     )
     _write(paths.COURSE_PROGRESS, body)
     return paths.COURSE_PROGRESS

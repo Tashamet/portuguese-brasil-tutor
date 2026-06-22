@@ -134,7 +134,7 @@ can restart the chain; the default policy is the fixed 2/7/30 intervals.
 
 ## 5. Commands
 
-### Slash commands (inside Claude — always English)
+### Slash commands (inside Claude)
 
 | Command | What it does |
 |---|---|
@@ -233,13 +233,13 @@ environment — never written to config files.
 
 Switch with one field, `deployment_profile`. Presets live in `config/profiles/`.
 
-### A — `skill-only` (nothing runs)
+### A — `skill-only`
 ```
 python3 cli/tutor.py setup --interface en --tts system --profile skill-only
 ```
 Use the skill in Claude. See due reviews with `/review`. No Telegram, no cron.
 
-### B — `local-notifier` (this machine)
+### B — `local-notifier`
 ```
 python3 cli/tutor.py setup --interface en --tts system --profile local-notifier \
     --enable-telegram --telegram-chat <CHAT_ID>
@@ -253,7 +253,7 @@ Install the daily job:
 Reminders arrive when the machine is on. Sync mode is `shared` — the cron job
 reads the same `data/` as Claude, so nothing transfers.
 
-### C — `remote-notifier` (24/7 on an SSH host)
+### C — `remote-notifier`
 Author locally; words travel to the host via a private git repo (text bundle),
 audio via Telegram `file_id`. On the host set `TELEGRAM_BOT_TOKEN`, then locally:
 ```
