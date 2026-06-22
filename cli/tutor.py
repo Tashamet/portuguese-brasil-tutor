@@ -87,6 +87,12 @@ def cmd_setup(args) -> None:
         cfg.setdefault("lessons", {})["time"] = args.study_time
     if args.study_days:
         cfg.setdefault("lessons", {})["days"] = args.study_days
+    if args.cloud_engine:
+        cfg.setdefault("tts", {}).setdefault("cloud", {})["engine"] = args.cloud_engine
+    if args.cloud_voice:
+        cfg.setdefault("tts", {}).setdefault("cloud", {})["voice_pt"] = args.cloud_voice
+    if args.api_key:
+        cfg.setdefault("tts", {}).setdefault("cloud", {})["api_key"] = args.api_key
 
     paths.CONFIG_PATH.write_text(
         yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -423,7 +429,8 @@ def cmd_import(args) -> None:
 
 def cmd_deploy(args) -> None:
     from deploy import remote
-    remote.deploy_ssh(args.ssh, send_time=args.send_time)
+    data_repo = args.data_repo or config.get("sync.git.repo_url", "")
+    remote.deploy_ssh(args.ssh, send_time=args.send_time, data_repo=data_repo)
 
 
 # --- Helpers ---------------------------------------------------------------
@@ -667,6 +674,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--name", help="student's name (for greetings)")
     s.add_argument("--study-time", help="lesson reminder time HH:MM")
     s.add_argument("--study-days", help="study days: daily or e.g. mon,wed,fri")
+    s.add_argument("--cloud-engine", choices=["elevenlabs", "openai"],
+                   help="cloud TTS engine (with --tts cloud)")
+    s.add_argument("--cloud-voice", help="ElevenLabs voice id / OpenAI voice name")
+    s.add_argument("--api-key", help="ElevenLabs/OpenAI key to store in config")
     s.set_defaults(func=cmd_setup)
 
     s = sub.add_parser("add-word", help="add a word (+variations, audio, schedule)")
@@ -738,6 +749,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("deploy", help="provision a remote notifier over SSH")
     s.add_argument("--ssh", required=True, help="user@host")
     s.add_argument("--send-time", default="09:00")
+    s.add_argument("--data-repo", help="private data-repo URL (else sync.git.repo_url)")
     s.set_defaults(func=cmd_deploy)
 
     s = sub.add_parser("selftest", help="end-to-end check of the tutor (sandboxed)")

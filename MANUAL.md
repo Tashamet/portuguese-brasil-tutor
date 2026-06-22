@@ -251,13 +251,20 @@ Claude writes the script; a TTS engine renders it. The provider is chosen in
 |---|---|---|---|
 | `local` | good | installer (piper-tts) | **default** — Piper, offline, free, cross-platform; voices auto-download to `~/.local/share/piper-tts/voices` |
 | `system` | good | none | macOS `say`; pt-BR voice **Luciana** (macOS only) |
-| `cloud` | best | API key in env | ElevenLabs (`ELEVENLABS_API_KEY`) or OpenAI (`OPENAI_API_KEY`) |
+| `cloud` | best | API key | ElevenLabs / OpenAI — see key options below |
 
 The default **Piper** voices: `pt_BR-faber-medium`, `en_US-lessac-medium`,
 `ru_RU-irina-medium`, `uk_UA-ukrainian_tts-medium` (override via
 `tts.local.piper_voices`). They download once on first use; the installer
 pre-fetches the pt-BR voice. On python.org macOS builds, `certifi` is used to
 fix SSL when downloading voices.
+
+**Cloud key** — resolved in order: env var (`ELEVENLABS_API_KEY` /
+`OPENAI_API_KEY`, wins) → `tts.cloud.api_key` in config → engine-specific
+`tts.cloud.elevenlabs_api_key` / `openai_api_key`. Easiest: paste it into the
+config, or `setup --tts cloud --cloud-engine elevenlabs --cloud-voice <id>
+--api-key <key>`. The key is only needed where audio is generated (your Claude
+Code machine) — a notifier host never needs it.
 
 Each lesson is built from `core/content.py`: intro (interface lang) → the word
 slow then natural → for each variation: context label → pt natural → pt slow →
@@ -289,8 +296,11 @@ Setup:
 3. `export TELEGRAM_BOT_TOKEN=...`
 4. `python3 cli/tutor.py setup --enable-telegram --telegram-chat <id> --profile local-notifier`
 
-Secrets (`TELEGRAM_BOT_TOKEN`, API keys, sync token) are only ever read from the
-environment — never written to config files.
+`TELEGRAM_BOT_TOKEN` and any git sync token are read **only** from the
+environment — never written to config. The **cloud TTS API key** may optionally
+be placed in the per-student config (`tts.cloud.api_key`) for convenience, since
+that config lives in the student's local data dir; the env var still wins. Avoid
+committing it if you push the data dir to a sync repo.
 
 ---
 
@@ -321,17 +331,23 @@ Install the daily job:
 - **cron**: see `deploy/cron.example`.
 
 Reminders arrive when the machine is on. Sync mode is `shared` — the cron job
-reads the same `data/` as Claude, so nothing transfers.
+reads the same profile data dir as Claude (set `TUTOR_PROFILE`), so nothing
+transfers.
 
 ### C — `remote-notifier`
-Author locally; words travel to the host via a private git repo (text bundle),
-audio via Telegram `file_id`. On the host set `TELEGRAM_BOT_TOKEN`, then locally:
+Code and data stay separate, like locally. First make the student's **data dir**
+a private git repo and push it (`sync.mode: git`, set `sync.git.repo_url`); audio
+rides Telegram `file_id`, so only text travels. Then locally:
 ```
 python3 cli/tutor.py deploy --ssh user@host --send-time 09:00
 ```
-This copies the package, creates a venv, installs deps, and installs a daily
-cron that runs `git pull → tutor.py import → send-due`. The
-`remote-notifier.yaml` profile is safe to share (no secrets).
+This **rsyncs the code** to `~/ptb-tutor-code`, and the remote setup **clones your
+private data repo** to `~/ptb-tutor-data`, installs a light venv (no Piper — the
+host generates no audio), and a daily cron running
+`TUTOR_DATA_DIR=~/ptb-tutor-data … tutor.py notify` (git pull → import → lesson
+nudge + due reviews). On the host, put `TELEGRAM_BOT_TOKEN` in `~/.ptb_env` and
+add a deploy key so it can pull the private repo. Pass `--data-repo <url>` if it's
+not in the config.
 
 ### D — `scheduled-agent` (no personal server)
 A Claude cloud **routine** runs the sender daily on a cron — always-on without a

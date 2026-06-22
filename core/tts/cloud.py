@@ -1,9 +1,11 @@
 """Cloud TTS adapter — ElevenLabs (default) or OpenAI. Best voice quality.
 
-Needs an API key from the environment (never the config file):
-``ELEVENLABS_API_KEY`` or ``OPENAI_API_KEY``. ElevenLabs' multilingual model
-handles mixed pt + interface text in one voice; we still render per segment so
-pacing/pauses are identical across providers.
+The API key is resolved in this order:
+  1. env var  ``ELEVENLABS_API_KEY`` / ``OPENAI_API_KEY``  (wins)
+  2. config   ``tts.cloud.api_key``                        (easiest — paste it)
+  3. config   ``tts.cloud.elevenlabs_api_key`` / ``tts.cloud.openai_api_key``
+ElevenLabs' multilingual model handles mixed pt + interface text in one voice;
+we still render per segment so pacing/pauses are identical across providers.
 """
 from __future__ import annotations
 
@@ -17,23 +19,31 @@ from .audio import AudioError
 from .base import Segment, TTSAdapter
 
 
+def _resolve_key(env_var: str, engine: str) -> str | None:
+    return (os.environ.get(env_var)
+            or config.get("tts.cloud.api_key")
+            or config.get(f"tts.cloud.{engine}_api_key"))
+
+
 class CloudTTS(TTSAdapter):
     name = "cloud"
 
     def __init__(self) -> None:
         self.engine = (config.get("tts.cloud.engine", "elevenlabs") or "elevenlabs").lower()
         if self.engine == "elevenlabs":
-            self.key = os.environ.get("ELEVENLABS_API_KEY")
+            self.key = _resolve_key("ELEVENLABS_API_KEY", "elevenlabs")
             self.voice = config.get("tts.cloud.voice_pt", "")
             if not self.key:
-                raise AudioError("ELEVENLABS_API_KEY not set")
+                raise AudioError("No ElevenLabs key — set tts.cloud.api_key in config "
+                                 "or the ELEVENLABS_API_KEY env var")
             if not self.voice:
                 raise AudioError("tts.cloud.voice_pt (ElevenLabs voice id) not set")
         elif self.engine == "openai":
-            self.key = os.environ.get("OPENAI_API_KEY")
+            self.key = _resolve_key("OPENAI_API_KEY", "openai")
             self.voice = config.get("tts.cloud.voice_pt", "alloy") or "alloy"
             if not self.key:
-                raise AudioError("OPENAI_API_KEY not set")
+                raise AudioError("No OpenAI key — set tts.cloud.api_key in config "
+                                 "or the OPENAI_API_KEY env var")
         else:
             raise AudioError(f"Unknown cloud engine '{self.engine}'")
 

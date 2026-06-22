@@ -24,7 +24,11 @@ tts:
   cloud:
     engine: elevenlabs           # elevenlabs | openai
     voice_pt: ""                 # ElevenLabs voice id, or OpenAI voice name (e.g. alloy)
-    # API key -> env ELEVENLABS_API_KEY / OPENAI_API_KEY
+    api_key: ""                  # paste your ElevenLabs / OpenAI key here (easiest),
+                                 # OR leave empty and use the env var
+                                 # ELEVENLABS_API_KEY / OPENAI_API_KEY (env wins).
+                                 # Note: only needed where audio is generated
+                                 # (your Claude Code machine), not on a notifier host.
 
 telegram:
   enabled: false                 # true for local-notifier / remote-notifier

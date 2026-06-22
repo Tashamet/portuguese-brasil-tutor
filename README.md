@@ -63,8 +63,8 @@ anywhere an API key is available.)
 - Python 3.11+ and `ffmpeg`/`ffprobe` on PATH (the installer handles Python deps)
 - Voice engine — **Piper** by default: offline, free, cross-platform; the
   installer installs it and downloads the Brazilian Portuguese voice.
-  Alternatives: **system** (macOS `say`) or **cloud** (ElevenLabs/OpenAI, API
-  key in env).
+  Alternatives: **system** (macOS `say`) or **cloud** (ElevenLabs/OpenAI — paste
+  the key into `tts.cloud.api_key` in your config, or use an env var).
 
 ## Using it
 

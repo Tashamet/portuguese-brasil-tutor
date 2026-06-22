@@ -1,20 +1,24 @@
-"""SSH deploy for the remote notifier (profile C).
+"""SSH deploy for the remote notifier (24/7 on a host you control).
 
-``tutor.py deploy --ssh user@host`` copies the package to the host, runs the
-remote setup script (creates a venv, installs deps, installs a daily cron job
-that pulls + imports + sends due reviews). Secrets are NOT copied — the script
-prints the env vars you must set on the host.
+``tutor.py deploy --ssh user@host`` rsyncs the **code** to the host and runs the
+remote setup script, which clones the **student's private data repo**, installs
+deps, and installs a daily cron that runs ``tutor.py notify`` against that data
+dir. Code and data stay separate, mirroring the local layout.
+
+The notifier never generates audio (it reuses Telegram ``file_id``), so the host
+needs only PyYAML + requests — no Piper.
+
+Secrets are NOT copied — the script prints the env var you must set on the host.
 """
 from __future__ import annotations
 
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 from core import paths
 
-REMOTE_DIR = "~/portuguese-brasil-tutor"
+REMOTE_CODE = "~/ptb-tutor-code"
 
 
 def _run(cmd: list[str]) -> None:
@@ -24,23 +28,28 @@ def _run(cmd: list[str]) -> None:
         raise SystemExit(f"command failed: {' '.join(cmd)}")
 
 
-def deploy_ssh(ssh: str, send_time: str = "09:00") -> None:
+def deploy_ssh(ssh: str, send_time: str = "09:00", data_repo: str = "") -> None:
+    if not data_repo:
+        raise SystemExit(
+            "Remote deploy needs your private DATA repo URL — push the student's "
+            "data dir to a private git repo, set sync.git.repo_url (or pass "
+            "--data-repo), then retry."
+        )
     src = str(paths.PKG_ROOT) + "/"
-    excludes = ["--exclude", "data/tutor.db", "--exclude", "data/audio",
-                "--exclude", "config/config.yaml", "--exclude", "__pycache__"]
+    excludes = ["--exclude", ".git", "--exclude", ".venv", "--exclude", "__pycache__"]
 
     if shutil.which("rsync"):
-        _run(["rsync", "-az", *excludes, src, f"{ssh}:{REMOTE_DIR}/"])
+        _run(["rsync", "-az", *excludes, src, f"{ssh}:{REMOTE_CODE}/"])
     else:
-        _run(["ssh", ssh, f"mkdir -p {REMOTE_DIR}"])
-        _run(["scp", "-r", src, f"{ssh}:{REMOTE_DIR}/"])
+        _run(["ssh", ssh, f"mkdir -p {REMOTE_CODE}"])
+        _run(["scp", "-r", src, f"{ssh}:{REMOTE_CODE}/"])
 
-    setup = (paths.PKG_ROOT / "deploy" / "remote-setup.sh")
-    _run(["scp", str(setup), f"{ssh}:{REMOTE_DIR}/deploy/remote-setup.sh"])
-    _run(["ssh", ssh, f"bash {REMOTE_DIR}/deploy/remote-setup.sh '{send_time}'"])
+    _run(["ssh", ssh,
+          f"bash {REMOTE_CODE}/deploy/remote-setup.sh '{send_time}' '{data_repo}'"])
 
-    print("\nDeploy done. On the host, make sure these are set (e.g. in ~/.profile):")
-    print("  export TELEGRAM_BOT_TOKEN=...   # from @BotFather")
-    print("  (and, for git sync, a deploy key with read access to your repo)")
-    print(f"The cron job runs daily at {send_time} and calls notifier/send_due.py.")
+    print("\nDeploy done. On the host:")
+    print("  1) set the bot token:  echo 'export TELEGRAM_BOT_TOKEN=...' >> ~/.ptb_env")
+    print("  2) ensure the host can read your private data repo (add a deploy key)")
+    print(f"The cron runs daily at {send_time}: it pulls the data repo and sends "
+          "due reviews + the lesson nudge.")
     sys.stdout.flush()

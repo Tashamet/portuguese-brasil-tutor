@@ -155,6 +155,10 @@ Prefix every command with `TUTOR_PROFILE=<slug>`. Use the voice from step 4
 (`--tts local` default | `system` | `cloud`) and include the personalisation
 from steps 1 & 4: `--name "<name>" --daily-words <n> --study-time <HH:MM>
 --study-days <daily|mon,wed,fri>` (shown abbreviated as `<personal>` below).
+If they chose the **cloud** voice, ask for their key and add
+`--cloud-engine <elevenlabs|openai> --cloud-voice <id|alloy> --api-key <key>`
+(or they can paste it into `tts.cloud.api_key` in their config, or use the
+`ELEVENLABS_API_KEY` / `OPENAI_API_KEY` env var).
 After setup, tell them in one line **where their data lives** (the
 `Student data dir` it prints — under `~/.portuguese-brasil-tutor/students/...`).
 
@@ -173,8 +177,10 @@ After setup, tell them in one line **where their data lives** (the
     topic) on study days plus any due word reviews.
   - **Remote (24/7 server):**
     `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --enable-telegram --telegram-chat <id> --profile remote-notifier`
-    set `sync.mode: git` with their private repo, then deploy:
-    `python3 cli/tutor.py deploy --ssh user@host --send-time HH:MM`.
+    Set `sync.mode: git` + `sync.git.repo_url`, make their **data dir** a private
+    git repo and push it, then deploy: `TUTOR_PROFILE=<slug> python3 cli/tutor.py
+    deploy --ssh user@host --send-time HH:MM` (the host clones the data repo and
+    runs the daily notifier).
   - **Scheduled Claude agent (no server):**
     `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --enable-telegram --telegram-chat <id> --profile scheduled-agent`
     Then help them: (1) make **their student data dir** (the printed
