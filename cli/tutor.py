@@ -50,7 +50,8 @@ def _load_payload(args) -> dict:
 
 
 def _parse_date(s: str | None) -> date:
-    return date.fromisoformat(s) if s else date.today()
+    # Default "today" is computed in the learner's timezone, not the server's.
+    return date.fromisoformat(s) if s else config.today_local()
 
 
 def _interface_lang() -> str:
@@ -88,6 +89,8 @@ def cmd_setup(args) -> None:
         cfg.setdefault("lessons", {})["time"] = args.study_time
     if args.study_days:
         cfg.setdefault("lessons", {})["days"] = args.study_days
+    if args.timezone:
+        cfg["timezone"] = args.timezone
     if args.cloud_engine:
         cfg.setdefault("tts", {}).setdefault("cloud", {})["engine"] = args.cloud_engine
     if args.cloud_voice:
@@ -278,7 +281,7 @@ def cmd_context(args) -> None:
         return
     name = config.student_name() or (db.get_setting("student_name") or "")
     nl = db.next_lesson()
-    due = len(db.due_reviews())
+    due = len(db.due_reviews(config.today_local()))
     out += [
         f"# Tutor context (interface: {lang})",
         f"student_name: {name or '—'}",
@@ -457,7 +460,10 @@ def cmd_import(args) -> None:
 def cmd_deploy(args) -> None:
     from deploy import remote
     data_repo = args.data_repo or config.get("sync.git.repo_url", "")
-    remote.deploy_ssh(args.ssh, send_time=args.send_time, data_repo=data_repo)
+    tz = args.timezone or config.timezone()
+    # The daily run time = the learner's study/reminder time.
+    send_time = args.send_time or config.lesson_time()
+    remote.deploy_ssh(args.ssh, send_time=send_time, data_repo=data_repo, timezone=tz)
 
 
 # --- Helpers ---------------------------------------------------------------
@@ -730,6 +736,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--name", help="student's name (for greetings)")
     s.add_argument("--study-time", help="lesson reminder time HH:MM")
     s.add_argument("--study-days", help="study days: daily or e.g. mon,wed,fri")
+    s.add_argument("--timezone", help="IANA tz, e.g. America/Sao_Paulo")
     s.add_argument("--cloud-engine", choices=["elevenlabs", "openai"],
                    help="cloud TTS engine (with --tts cloud)")
     s.add_argument("--cloud-voice", help="ElevenLabs voice id / OpenAI voice name")
@@ -809,8 +816,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("deploy", help="provision a remote notifier over SSH")
     s.add_argument("--ssh", required=True, help="user@host")
-    s.add_argument("--send-time", default="09:00")
+    s.add_argument("--send-time", help="HH:MM (default: your configured send/study time)")
     s.add_argument("--data-repo", help="private data-repo URL (else sync.git.repo_url)")
+    s.add_argument("--timezone", help="IANA tz, e.g. America/Sao_Paulo (else config)")
     s.set_defaults(func=cmd_deploy)
 
     s = sub.add_parser("selftest", help="end-to-end check of the tutor (sandboxed)")

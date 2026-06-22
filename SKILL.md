@@ -138,7 +138,10 @@ the due day, when you're not in Claude*:
 - **Pace** — how many new words per day (default: 1).
 - **Schedule** — **how often and at what time** they want to study (e.g. daily at
   19:00, or Mon/Wed/Fri evenings). This drives the lesson reminders. Capture days
-  + time for `--study-days` / `--study-time`.
+  + time for `--study-days` / `--study-time`. Also note their **timezone**
+  (`--timezone`, IANA name): infer it from their city/state (most of Brazil is
+  `America/Sao_Paulo`; Manaus/Amazonas = `America/Manaus`) so reminders fire in
+  *their* time, not a server's UTC. Confirm if unsure.
 - **Focus** — pure survival right now, or broader once you're comfortable.
 - **Audio voice** — **Piper** (default: offline, free, set up by the installer),
   the macOS built-in voice, or a higher-quality **cloud** voice (needs an API
@@ -160,7 +163,8 @@ Record the answers in their `journal/profile.md` (edit the file directly).
 Prefix every command with `TUTOR_PROFILE=<slug>`. Use the voice from step 4
 (`--tts local` default | `system` | `cloud`) and include the personalisation
 from steps 1 & 4: `--name "<name>" --daily-words <n> --study-time <HH:MM>
---study-days <daily|mon,wed,fri>` (shown abbreviated as `<personal>` below).
+--study-days <daily|mon,wed,fri> --timezone <IANA tz>` (shown abbreviated as
+`<personal>` below).
 If they chose the **cloud** voice, ask for their key and add
 `--cloud-engine <elevenlabs|openai> --cloud-voice <id|alloy> --api-key <key>`
 (or they can paste it into `tts.cloud.api_key` in their config, or use the

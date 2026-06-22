@@ -28,7 +28,8 @@ def _run(cmd: list[str]) -> None:
         raise SystemExit(f"command failed: {' '.join(cmd)}")
 
 
-def deploy_ssh(ssh: str, send_time: str = "09:00", data_repo: str = "") -> None:
+def deploy_ssh(ssh: str, send_time: str = "09:00", data_repo: str = "",
+               timezone: str = "") -> None:
     if not data_repo:
         raise SystemExit(
             "Remote deploy needs your private DATA repo URL — push the student's "
@@ -45,11 +46,13 @@ def deploy_ssh(ssh: str, send_time: str = "09:00", data_repo: str = "") -> None:
         _run(["scp", "-r", src, f"{ssh}:{REMOTE_CODE}/"])
 
     _run(["ssh", ssh,
-          f"bash {REMOTE_CODE}/deploy/remote-setup.sh '{send_time}' '{data_repo}'"])
+          f"bash {REMOTE_CODE}/deploy/remote-setup.sh "
+          f"'{send_time}' '{data_repo}' '{timezone}'"])
 
+    tz_note = f" in {timezone}" if timezone else " (server-local time — set a timezone!)"
     print("\nDeploy done. On the host:")
     print("  1) set the bot token:  echo 'export TELEGRAM_BOT_TOKEN=...' >> ~/.ptb_env")
     print("  2) ensure the host can read your private data repo (add a deploy key)")
-    print(f"The cron runs daily at {send_time}: it pulls the data repo and sends "
-          "due reviews + the lesson nudge.")
+    print(f"The cron runs daily at {send_time}{tz_note}: it pulls the data repo and "
+          "sends due reviews + the lesson nudge.")
     sys.stdout.flush()

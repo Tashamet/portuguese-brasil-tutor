@@ -174,6 +174,12 @@ ahead, stored with `set-plan`). From these:
 Two reminder kinds, both outbound Telegram: the **lesson nudge** (come study,
 by schedule) and the **word-review posts** (the day 2/7/30 audio cards).
 
+**Timezone.** All scheduling uses the `timezone` config value (IANA, default
+`America/Sao_Paulo`), so reminders fire in the learner's time and "today"/study
+days are computed there — not in a server's UTC. `deploy --ssh` writes a
+`CRON_TZ`/`TZ=` into the remote cron from this value; for a scheduled-agent
+routine, set the routine's run time in the same zone.
+
 ### Spaced repetition (Ebbinghaus)
 
 When a word is learned on day **D**, three reviews are scheduled: **D+2**,
@@ -206,7 +212,7 @@ You can rename or add aliases via `/commands`; they're stored in
 
 | Command | Description |
 |---|---|
-| `setup [--interface ru\|en\|uk] [--tts local\|system\|cloud] [--name NAME] [--daily-words N] [--study-time HH:MM] [--study-days daily\|mon,wed,fri] [--profile ...] [--enable-telegram] [--telegram-chat ID]` | Write config, init DB + wiki scaffold |
+| `setup [--interface ru\|en\|uk] [--tts local\|system\|cloud] [--name NAME] [--daily-words N] [--study-time HH:MM] [--study-days daily\|mon,wed,fri] [--timezone IANA] [--profile ...] [--enable-telegram] [--telegram-chat ID]` | Write config, init DB + wiki scaffold |
 | `set-plan --stdin` | Store the multi-lesson plan (+ render `plan.md`) |
 | `lesson-done [--idx N]` | Mark a lesson complete so the plan advances |
 | `lesson-reminder [--on DATE]` | Send the Telegram lesson nudge (greeting + topic) |

@@ -79,6 +79,21 @@ def student_name() -> str:
     return (get("student_name") or "").strip()
 
 
+def timezone() -> str:
+    """IANA timezone for scheduling; default to Brazil (São Paulo)."""
+    return (get("timezone") or "America/Sao_Paulo").strip()
+
+
+def today_local():
+    """Today's date in the learner's timezone (not the server's UTC)."""
+    from datetime import date, datetime
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo(timezone())).date()
+    except Exception:
+        return date.today()
+
+
 _WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
 

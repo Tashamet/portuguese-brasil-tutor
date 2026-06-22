@@ -9,3 +9,10 @@
 #
 # Put TELEGRAM_BOT_TOKEN in ~/.tutor_env:   export TELEGRAM_BOT_TOKEN=123:abc
 # One line per student profile if you run several.
+#
+# Timezone: a local machine's cron already uses local time. On a machine in a
+# different zone (e.g. a UTC server), make the time fire in YOUR zone by adding a
+# CRON_TZ line above the job and a TZ= prefix on the command:
+#   CRON_TZ=America/Sao_Paulo
+#   0 19 * * * . "$HOME/.tutor_env"; cd "$HOME/.claude/skills/portuguese-brasil-tutor"; TZ=America/Sao_Paulo TUTOR_PROFILE=nikolai python3 notifier/send_due.py >> "$HOME/notifier.log" 2>&1
+# (`tutor.py deploy --ssh` sets this for you from the config `timezone`.)
