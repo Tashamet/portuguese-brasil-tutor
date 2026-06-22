@@ -255,6 +255,11 @@ environment — never written to config files.
 ## 8. Deployment profiles
 
 Switch with one field, `deployment_profile`. Presets live in `config/profiles/`.
+The profile decides **where reminders are delivered from** — it is independent of
+the voice engine (`tts.provider`). A reminder is sent by whatever runs at the due
+time, and that sender needs only the bot token + the stored `file_id` + the
+schedule (no TTS), because the audio was uploaded when the word was learned. So
+choosing `cloud` TTS does not remove the need for a local or remote sender.
 
 ### A — `skill-only`
 ```

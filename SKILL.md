@@ -88,6 +88,20 @@ Lay out the two options plainly and let them choose:
   (card + audio) on the right day. Needs a one-time setup (a bot token and your
   chat id) — I'll guide you through it.
 
+If they choose **with bot**, ask **where the reminders should run** — this is a
+separate choice from the audio voice, and it's about *what sends the reminder on
+the due day, when you're not in Claude*:
+- **On this machine** (local): a small daily job sends reminders. Simplest, free,
+  but they only arrive **when the machine is on** at that time.
+- **On a server, 24/7** (remote): reminders always arrive, independent of your
+  computer. Needs an **SSH host you control**; words sync to it via a private git
+  repo. Set this up only if they want round-the-clock reminders.
+> Clarify if asked: the voice engine (Piper/cloud) only affects how audio is
+> made; it does **not** deliver reminders. The audio is already uploaded to
+> Telegram when the word is learned, so the sender just needs the token + the
+> stored `file_id` — choosing cloud TTS does not remove the need for a
+> local-or-remote sender.
+
 ### 4. Ask the work format
 - **Pace** — how many new words per day (default: 1).
 - **Focus** — pure survival right now, or broader once you're comfortable.
@@ -106,13 +120,23 @@ Record the answers into `data/journal/profile.md`.
 ### 6. Apply the configuration (tell the user what you're doing)
 Use the voice from step 4: `--tts local` (Piper, default), `--tts system`
 (macOS), or `--tts cloud`. Add `--daily-words <n>` (the pace from step 4).
+
 - **Without bot:**
   `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --profile skill-only`
-- **With bot:** explain the one-time steps first — create a bot with
+
+- **With bot** — first the one-time Telegram steps: create a bot with
   **@BotFather** and copy its token; get your chat id from **@userinfobot**; set
-  `TELEGRAM_BOT_TOKEN` in the environment. Then:
-  `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile local-notifier`
-  and offer to verify it with `python3 cli/tutor.py test-telegram`.
+  `TELEGRAM_BOT_TOKEN` in the environment. Then configure by where reminders run
+  (the choice from step 3):
+  - **Local (this machine):**
+    `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile local-notifier`
+    Then install the daily job: `deploy/launchd/com.tutor.notifier.plist` (macOS)
+    or `deploy/cron.example` (cron). Tell them reminders need the machine on.
+  - **Remote (24/7 server):**
+    `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile remote-notifier`
+    set `sync.mode: git` with their private repo, then deploy:
+    `python3 cli/tutor.py deploy --ssh user@host --send-time HH:MM`.
+  In both cases offer to verify with `python3 cli/tutor.py test-telegram`.
 After running setup, say in one line what happened.
 
 ### 7. Agree the plan, then start

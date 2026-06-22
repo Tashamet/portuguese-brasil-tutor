@@ -76,9 +76,15 @@ they're due. Your course updates itself — open the files under `data/course/`
 anytime.
 
 **With or without the Telegram bot.** Without: you review inside Claude. With: a
-bot also delivers each due review (card + audio) at a set time. The tutor sets
-this up during onboarding. For unattended 24/7 reminders on a server, see the
-deployment profiles in [MANUAL.md](MANUAL.md).
+bot also delivers each due review (card + audio) at a set time. If you choose the
+bot, you also pick **where reminders run**: on **this machine** (simplest — they
+arrive when it's on) or on a **server, 24/7** (always on; needs an SSH host, words
+sync via a private git repo). The tutor sets this up during onboarding.
+
+The voice engine (Piper / cloud) is a **separate** choice — it only affects how
+audio is generated, not who sends reminders. The audio is uploaded to Telegram
+once when you learn a word, so the sender just reuses it by `file_id`; choosing
+cloud TTS does not remove the need for a local-or-remote sender.
 
 ## Commands
 
