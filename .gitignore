@@ -25,3 +25,6 @@ config/config.yaml
 __pycache__/
 *.pyc
 data/notifier.log
+
+# macOS
+.DS_Store
