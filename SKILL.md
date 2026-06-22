@@ -57,31 +57,70 @@ Run `python3 cli/tutor.py context`.
 
 ## ONBOARDING (first run only)
 
-1. **Ask the interface language** — "In which language do you want to learn:
-   English, Українська, or Русский?" Then run:
-   `python3 cli/tutor.py setup --interface <ru|en|uk> --tts system --profile skill-only`
-   From here, conduct everything in that language. Load
-   `references/interface/<lang>.md`.
+**Be transparent. Explain before you act; never run a `setup`/config command
+silently.** The learner should understand what this is and what each choice
+means before anything is configured. Ask the questions one at a time, in plain
+language, and wait for answers. Walk through these steps in order:
 
-2. **Survival diagnostics** (ask in the interface language):
-   - How long have you been in Brazil, and where do you live (city/state)?
-   - Which situations stress you most right now (shop, transport, work,
-     neighbours, doctor)?
-   - What can you already say in Portuguese, even 2-3 words?
-   Record the answers into `data/journal/profile.md` (edit the file directly).
+### 1. Ask the interface language
+"First — which language should I teach you in: **English**, **Українська**, or
+**Русский**?" Wait for the answer, then load `references/interface/<lang>.md` and
+conduct everything from here in that language. Do **not** run setup yet.
 
-3. **Compose a learning plan** → write `data/course/plan.md` (stages → themes →
-   priorities, starting from the learner's most painful survival zone). **Show
-   it and get agreement** before moving on. Then run
-   `python3 cli/tutor.py stats` once so the wiki index/progress initialize.
+### 2. Explain what this is and how it will work
+In the chosen language, give a short, friendly overview (your own words, not a
+wall of text). Cover these points:
+- I'm your Brazilian Portuguese tutor for real, everyday life in Brazil.
+- **Each lesson** = one useful word + 10 real-life example sentences + a short
+  **2-4 minute audio** you just listen to.
+- Everything is **saved to a personal course** — plain files you can open and
+  read anytime: your words, plan, progress, grammar and themes.
+- I bring each word **back for review on day 2, 7 and 30** so it sticks
+  (spaced repetition — the Ebbinghaus idea).
+- Optionally, a **Telegram bot** can send you those reviews (the word + its
+  audio) automatically at a set time.
 
-4. **Explain Telegram reminders** — tell the user plainly: *on review days (2, 7
-   and 30 days after learning a word) a Telegram post will arrive with the word
-   card and its audio.* If they want it, walk them through `/setup`:
-   get a bot token from @BotFather, find their chat id via @userinfobot, set
-   `TELEGRAM_BOT_TOKEN` in the environment, then
-   `python3 cli/tutor.py setup --enable-telegram --telegram-chat <id> --profile local-notifier`.
-   If they don't want it, stay on `skill-only` (no Telegram).
+### 3. Ask the setup variant — with bot or without
+Lay out the two options plainly and let them choose:
+- **Without bot** (simplest): everything lives here. You review when you open
+  the tutor and ask. Nothing runs in the background, no setup needed.
+- **With bot**: the same, plus a Telegram bot pings you with each due review
+  (card + audio) on the right day. Needs a one-time setup (a bot token and your
+  chat id) — I'll guide you through it.
+
+### 4. Ask the work format
+- **Pace** — how many new words per day (default: 1).
+- **Focus** — pure survival right now, or broader once you're comfortable.
+- **Audio voice** — built-in (free, default) or higher-quality cloud voice
+  (needs an API key). Mention it briefly; default to built-in.
+
+### 5. Short survival diagnostic
+Ask in the interface language:
+- How long have you been in Brazil, and where do you live (city/state)?
+- Which situations stress you most right now (shop, transport, work,
+  neighbours, doctor)?
+- What can you already say in Portuguese, even 2-3 words?
+Record the answers into `data/journal/profile.md`.
+
+### 6. Apply the configuration (tell the user what you're doing)
+Add `--daily-words <n>` (the pace from step 4) and `--tts cloud` if they chose
+the cloud voice; otherwise `--tts system`.
+- **Without bot:**
+  `python3 cli/tutor.py setup --interface <lang> --tts system --daily-words <n> --profile skill-only`
+- **With bot:** explain the one-time steps first — create a bot with
+  **@BotFather** and copy its token; get your chat id from **@userinfobot**; set
+  `TELEGRAM_BOT_TOKEN` in the environment. Then:
+  `python3 cli/tutor.py setup --interface <lang> --tts system --daily-words <n> --enable-telegram --telegram-chat <id> --profile local-notifier`
+  and offer to verify it with `python3 cli/tutor.py test-telegram`.
+After running setup, say in one line what happened.
+
+### 7. Agree the plan, then start
+Write `data/course/plan.md` (stages → themes → priorities, starting from the
+most painful survival zone), **show it and get a yes**. Then give the **first
+lesson right away** so the learner sees the whole loop end to end.
+
+> Throughout: explain, don't hide. After any toolkit command, tell the learner
+> in one line what it did ("Saved — it's in your course under `words/…`").
 
 ---
 

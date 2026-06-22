@@ -79,6 +79,8 @@ def cmd_setup(args) -> None:
         cfg.setdefault("telegram", {})["chat_id"] = args.telegram_chat
     if args.enable_telegram:
         cfg.setdefault("telegram", {})["enabled"] = True
+    if args.daily_words:
+        cfg["daily_new_words"] = int(args.daily_words)
 
     paths.CONFIG_PATH.write_text(
         yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -479,6 +481,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--profile", choices=["skill-only", "local-notifier", "remote-notifier"])
     s.add_argument("--telegram-chat")
     s.add_argument("--enable-telegram", action="store_true")
+    s.add_argument("--daily-words", type=int, help="new words per day (pace)")
     s.set_defaults(func=cmd_setup)
 
     s = sub.add_parser("add-word", help="add a word (+variations, audio, schedule)")

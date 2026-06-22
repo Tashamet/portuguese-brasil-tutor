@@ -109,11 +109,16 @@ git.
 
 ## 4. The learning loop
 
-1. **Session start** — `tutor.py context` tells the skill whether this is a
-   first run (no profile/words) or returns the saved profile, progress, recent
+1. **First run (onboarding)** — the tutor walks you through it transparently:
+   it asks your interface language, explains what the skill is and how it works,
+   asks whether you want it **with or without the Telegram bot**, asks your work
+   format (pace, focus, audio voice), runs a short survival diagnostic, agrees a
+   plan with you, and only then configures and starts. Nothing is set up
+   silently. See the ONBOARDING section in `SKILL.md`.
+2. **Returning** — `tutor.py context` returns the saved profile, progress, recent
    sessions and word lists. Claude continues where you left off and surfaces
    what's due today.
-2. **A new word** — Claude writes a rich card, 10 contextual variations (each in
+3. **A new word** — Claude writes a rich card, 10 contextual variations (each in
    a different time/place), finds real culture links via web search, then calls
    `tutor.py add-word`. That single call:
    - writes `data/course/words/{slug}.md`,
@@ -123,10 +128,10 @@ git.
      variations, each pt natural + pt slow + gloss → quick recap),
    - if Telegram is on, uploads the audio once and stores its `file_id`,
    - rebuilds `index.md` and `progress.md`.
-3. **Reviews** — on day 2/7/30 the word is "due". Inside Claude you drill it
+4. **Reviews** — on day 2/7/30 the word is "due". Inside Claude you drill it
    with `/review`; with a notifier configured, a Telegram post arrives
    automatically (card text + voice).
-4. **Session end** — `tutor.py log-session` appends what you covered.
+5. **Session end** — `tutor.py log-session` appends what you covered.
 
 ### Spaced repetition (Ebbinghaus)
 
@@ -160,7 +165,7 @@ You can rename or add aliases via `/commands`; they're stored in
 
 | Command | Description |
 |---|---|
-| `setup [--interface ru\|en\|uk] [--tts system\|local\|cloud] [--profile ...] [--enable-telegram] [--telegram-chat ID]` | Write config, init DB + wiki scaffold |
+| `setup [--interface ru\|en\|uk] [--tts system\|local\|cloud] [--daily-words N] [--profile ...] [--enable-telegram] [--telegram-chat ID]` | Write config, init DB + wiki scaffold |
 | `context` | Dump learner state for the skill (prints `first_run: true/false`) |
 | `add-word --stdin` (or `--json FILE`) `[--today DATE] [--no-audio] [--no-telegram]` | Add a word: card, variations, schedule, audio |
 | `gen-audio SLUG [--no-telegram]` | Re-render audio for an existing word |
