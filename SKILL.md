@@ -95,7 +95,11 @@ the due day, when you're not in Claude*:
   but they only arrive **when the machine is on** at that time.
 - **On a server, 24/7** (remote): reminders always arrive, independent of your
   computer. Needs an **SSH host you control**; words sync to it via a private git
-  repo. Set this up only if they want round-the-clock reminders.
+  repo.
+- **Scheduled Claude agent** (no personal server): a Claude cloud routine runs
+  the sender daily on a cron — always-on without your own machine or VPS. Needs a
+  **private git repo** for your data and the bot token available to the routine.
+  See `deploy/agent-notify.sh` and MANUAL §8.
 > Clarify if asked: the voice engine (Piper/cloud) only affects how audio is
 > made; it does **not** deliver reminders. The audio is already uploaded to
 > Telegram when the word is learned, so the sender just needs the token + the
@@ -136,7 +140,15 @@ Use the voice from step 4: `--tts local` (Piper, default), `--tts system`
     `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile remote-notifier`
     set `sync.mode: git` with their private repo, then deploy:
     `python3 cli/tutor.py deploy --ssh user@host --send-time HH:MM`.
-  In both cases offer to verify with `python3 cli/tutor.py test-telegram`.
+  - **Scheduled Claude agent (no server):**
+    `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile scheduled-agent`
+    Then help them: (1) push their data to a **private** git repo (`sync.mode:
+    git`, commit `data/course`, `data/journal`, `sync/words.ndjson`); (2) create a
+    daily Claude routine (use the `schedule` skill) that runs
+    `deploy/agent-notify.sh` with `TUTOR_SYNC_REPO` and `TELEGRAM_BOT_TOKEN` set.
+    Be honest about the token: it must live in the routine's environment; use a
+    dedicated bot.
+  In all cases offer to verify now with `python3 cli/tutor.py test-telegram`.
 After running setup, say in one line what happened.
 
 ### 7. Agree the plan, then start

@@ -1,0 +1,16 @@
+# Profile D — scheduled Claude agent (no personal server).
+# A Claude cloud routine runs `tutor.py notify` daily: it pulls your words from
+# a PRIVATE git repo and delivers due reviews to Telegram. No VPS, no machine
+# left on. Requires: git sync to a private repo, and the bot token available to
+# the routine's environment. Audio rides Telegram file_id (not committed).
+deployment_profile: scheduled-agent
+tts:
+  provider: local          # authoring still happens locally in Claude Code
+telegram:
+  enabled: true
+  chat_id: ""              # set yours
+  send_time: "09:00"       # the routine's cron time
+sync:
+  mode: git
+  git:
+    repo_url: ""           # YOUR PRIVATE repo (holds code + committed data)

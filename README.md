@@ -78,8 +78,10 @@ anytime.
 **With or without the Telegram bot.** Without: you review inside Claude. With: a
 bot also delivers each due review (card + audio) at a set time. If you choose the
 bot, you also pick **where reminders run**: on **this machine** (simplest — they
-arrive when it's on) or on a **server, 24/7** (always on; needs an SSH host, words
-sync via a private git repo). The tutor sets this up during onboarding.
+arrive when it's on), on a **server, 24/7** (needs an SSH host), or via a
+**scheduled Claude agent** (a cloud routine — always-on with no personal server;
+needs a private data repo). The tutor sets this up during onboarding; details in
+[MANUAL.md](MANUAL.md).
 
 The voice engine (Piper / cloud) is a **separate** choice — it only affects how
 audio is generated, not who sends reminders. The audio is uploaded to Telegram

@@ -212,6 +212,24 @@ def cmd_send_due(args) -> None:
     print(f"sent {sent} review(s)")
 
 
+def cmd_notify(args) -> None:
+    """One-shot delivery entry point used by cron, launchd, and scheduled agents.
+
+    In git sync mode it first pulls + imports the latest words, then delivers
+    today's due reviews to Telegram. This is what a remote notifier or a
+    scheduled Claude agent runs daily.
+    """
+    db.init()
+    if config.sync_mode() == "git" and not args.no_pull:
+        if (paths.PKG_ROOT / ".git").exists():
+            proc = subprocess.run(["git", "-C", str(paths.PKG_ROOT), "pull", "--ff-only"],
+                                  capture_output=True, text=True)
+            if proc.returncode != 0:
+                print(f"git pull failed: {proc.stderr.strip()}", file=sys.stderr)
+        sync.import_bundle()
+    cmd_send_due(args)
+
+
 def cmd_context(args) -> None:
     """Dump the learner context for the skill to read at session start."""
     db.init()
@@ -516,7 +534,8 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("setup", help="write config + init db/wiki")
     s.add_argument("--interface", choices=["ru", "en", "uk"])
     s.add_argument("--tts", choices=["system", "local", "cloud"])
-    s.add_argument("--profile", choices=["skill-only", "local-notifier", "remote-notifier"])
+    s.add_argument("--profile", choices=["skill-only", "local-notifier",
+                                         "remote-notifier", "scheduled-agent"])
     s.add_argument("--telegram-chat")
     s.add_argument("--enable-telegram", action="store_true")
     s.add_argument("--daily-words", type=int, help="new words per day (pace)")
@@ -544,6 +563,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("send-due", help="deliver due reviews to Telegram")
     s.add_argument("--on"); s.set_defaults(func=cmd_send_due)
+
+    s = sub.add_parser("notify", help="pull+import (git mode) then send due reviews")
+    s.add_argument("--on"); s.add_argument("--no-pull", action="store_true")
+    s.set_defaults(func=cmd_notify)
 
     s = sub.add_parser("context", help="dump learner context for the skill")
     s.set_defaults(func=cmd_context)

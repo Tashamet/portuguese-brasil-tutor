@@ -2,7 +2,7 @@
 # Copy to config.yaml (or run `tutor.py setup`). Secrets live in env vars,
 # never here: TELEGRAM_BOT_TOKEN, ELEVENLABS_API_KEY, OPENAI_API_KEY.
 
-deployment_profile: skill-only   # skill-only | local-notifier | remote-notifier
+deployment_profile: skill-only   # skill-only | local-notifier | remote-notifier | scheduled-agent
 interface_language: ""           # ru | en | uk — asked on first run, then fixed
 review_intervals: [2, 7, 30]     # Ebbinghaus spaced repetition (days)
 daily_new_words: 1

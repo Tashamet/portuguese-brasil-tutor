@@ -291,6 +291,28 @@ This copies the package, creates a venv, installs deps, and installs a daily
 cron that runs `git pull → tutor.py import → send-due`. The
 `remote-notifier.yaml` profile is safe to share (no secrets).
 
+### D — `scheduled-agent` (no personal server)
+A Claude cloud **routine** runs the sender daily on a cron — always-on without a
+VPS or leaving your machine on. It's the remote model with the "host" being an
+ephemeral Claude agent environment.
+
+1. Put your data in a **private** git repo: `sync.mode: git`, and commit
+   `data/course`, `data/journal`, `sync/words.ndjson` (the binary DB and audio
+   stay ignored; audio rides Telegram `file_id`). Run `tutor.py export` and push
+   after each session (or let the skill do it).
+2. Create a daily routine with the **`schedule`** skill that runs
+   `deploy/agent-notify.sh` with two environment values:
+   - `TUTOR_SYNC_REPO` — your private repo URL
+   - `TELEGRAM_BOT_TOKEN` — a **dedicated** bot's token
+   The script clones/pulls the repo, installs deps, and runs `tutor.py notify`
+   (pull → import → send-due).
+
+Caveat: the routine must hold the bot token in its environment. A bot token only
+lets a sender post as that bot, but still use a dedicated bot and a private repo.
+
+Every profile's sender is the same one-shot command — `tutor.py notify` (or
+`notifier/send_due.py`) — differing only in *where* it runs.
+
 ---
 
 ## 9. Sync (how the remote notifier learns what to send)
