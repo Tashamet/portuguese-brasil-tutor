@@ -5,11 +5,23 @@ data/tutor.db-*
 # Audio bytes travel via Telegram file_id, not git.
 data/audio/
 
+# Personal learning data stays local — it is NOT committed to the code repo.
+# For git-sync deployments it travels inside sync/words.ndjson (which carries the
+# card text), so the markdown course/journal never needs to be committed here.
+data/course/index.md
+data/course/plan.md
+data/course/progress.md
+data/course/words/*.md
+data/course/grammar/*.md
+data/course/themes/*.md
+data/journal/profile.md
+data/journal/commands.md
+data/journal/sessions/*.md
+data/*.json
+
 # Secrets and local config.
 config/config.yaml
 .venv/
 __pycache__/
 *.pyc
 data/notifier.log
-
-# Committed/synced (do NOT ignore): data/course/, data/journal/, sync/words.ndjson

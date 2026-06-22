@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from . import db, paths
+from . import db, paths, wiki
 
 
 def export_bundle(out_path: Path | None = None) -> Path:
@@ -47,6 +47,9 @@ def export_bundle(out_path: Path | None = None) -> Path:
                 "status": w["status"],
                 "card_path": w["card_path"],
                 "created_at": w["created_at"],
+                # Card text travels in the bundle so the personal course markdown
+                # never has to be committed; the importer rewrites it on the other side.
+                "card": wiki.read_word_card(w["slug"]) or "",
                 "variations": variations,
                 "reviews": reviews,
                 "audio": dict(audio) if audio else None,
@@ -95,6 +98,11 @@ def import_bundle(path: Path | None = None) -> int:
                      rec["created_at"]),
                 )
                 word_id = int(cur.lastrowid)
+
+            # Rewrite the local course card from the bundle (so the remote/agent
+            # has the post text without the markdown being committed anywhere).
+            if rec.get("card"):
+                wiki.write_word_card(rec["slug"], rec["card"])
 
             # Replace variations (idempotent content).
             conn.execute("DELETE FROM variations WHERE word_id = ?", (word_id,))
