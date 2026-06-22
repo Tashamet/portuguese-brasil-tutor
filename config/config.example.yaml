@@ -4,8 +4,14 @@
 
 deployment_profile: skill-only   # skill-only | local-notifier | remote-notifier | scheduled-agent
 interface_language: ""           # ru | en | uk — asked on first run, then fixed
+student_name: ""                 # used to greet the learner by name
 review_intervals: [2, 7, 30]     # Ebbinghaus spaced repetition (days)
 daily_new_words: 1
+
+lessons:                         # lesson reminders (separate from word reviews)
+  reminder_enabled: true
+  days: daily                    # daily | a list like mon,wed,fri
+  time: "19:00"                  # when to nudge for a lesson
 
 tts:
   provider: local                # local (Piper, default) | system (macOS say) | cloud

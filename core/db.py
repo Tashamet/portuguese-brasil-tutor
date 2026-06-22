@@ -65,6 +65,14 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reviews_due ON reviews(due_date, status);
+
+CREATE TABLE IF NOT EXISTS lessons (
+    id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    idx    INTEGER NOT NULL,
+    topic  TEXT NOT NULL,
+    notes  TEXT DEFAULT '',
+    status TEXT DEFAULT 'planned'   -- planned | done
+);
 """
 
 
@@ -238,6 +246,39 @@ def latest_audio(word_id: int) -> AudioAsset | None:
             duration=row["duration"],
             telegram_file_id=row["telegram_file_id"],
         )
+
+
+# --- Lessons (the multi-lesson plan) --------------------------------------
+
+def set_lessons(lessons: list[dict]) -> None:
+    """Replace the lesson plan with an ordered list of {topic, notes}."""
+    with connect() as conn:
+        conn.execute("DELETE FROM lessons")
+        for i, le in enumerate(lessons):
+            conn.execute(
+                "INSERT INTO lessons(idx, topic, notes, status) VALUES(?,?,?, 'planned')",
+                (i, le["topic"], le.get("notes", "")),
+            )
+
+
+def list_lessons() -> list[dict]:
+    with connect() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT * FROM lessons ORDER BY idx").fetchall()]
+
+
+def next_lesson() -> dict | None:
+    """The next not-yet-done lesson in the plan."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM lessons WHERE status = 'planned' ORDER BY idx LIMIT 1"
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def mark_lesson_done(idx: int) -> None:
+    with connect() as conn:
+        conn.execute("UPDATE lessons SET status = 'done' WHERE idx = ?", (idx,))
 
 
 # --- Reviews (the Ebbinghaus engine) --------------------------------------

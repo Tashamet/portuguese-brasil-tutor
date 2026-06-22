@@ -50,6 +50,32 @@ def build_segments(word: Word, interface_lang: str) -> list[Segment]:
     return segs
 
 
+def lesson_reminder_text(name: str, topic: str, due_count: int,
+                         interface_lang: str) -> str:
+    """The Telegram lesson nudge (separate from word-review posts)."""
+    lang = interface_lang if interface_lang in ("ru", "en", "uk") else "en"
+    hi = {"ru": f"Привет, {name}!" if name else "Привет!",
+          "en": f"Hi {name}!" if name else "Hi!",
+          "uk": f"Привіт, {name}!" if name else "Привіт!"}[lang]
+    if topic:
+        plan = {"ru": f"Сегодня по плану занятие: {topic}.",
+                "en": f"Today's planned lesson: {topic}.",
+                "uk": f"Сьогодні за планом заняття: {topic}."}[lang]
+    else:
+        plan = {"ru": "Сегодня хорошее время позаниматься.",
+                "en": "Today is a good time to study.",
+                "uk": "Сьогодні гарний час позайматися."}[lang]
+    review = ""
+    if due_count:
+        review = {"ru": f" К повторению: {due_count} слов(а).",
+                  "en": f" To review: {due_count} word(s).",
+                  "uk": f" До повторення: {due_count} слів."}[lang]
+    tail = {"ru": " Откроешь tutor — продолжим.",
+            "en": " Open the tutor when you're ready.",
+            "uk": " Відкривай tutor — продовжимо."}[lang]
+    return f"{hi} {plan}{review}{tail}"
+
+
 def build_phrase_segments(phrases: list[dict], interface_lang: str) -> list[Segment]:
     """Audio for an ad-hoc set of phrases (e.g. a survival set), not a saved word.
 

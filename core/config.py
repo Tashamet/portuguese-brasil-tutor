@@ -73,3 +73,31 @@ def telegram_token() -> str | None:
 
 def sync_mode() -> str:
     return (get("sync.mode", "shared") or "shared").strip().lower()
+
+
+def student_name() -> str:
+    return (get("student_name") or "").strip()
+
+
+_WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+
+def lesson_reminders_enabled() -> bool:
+    return bool(get("lessons.reminder_enabled", True))
+
+
+def lesson_time() -> str:
+    return str(get("lessons.time", "19:00") or "19:00")
+
+
+def is_study_day(d) -> bool:
+    """True if ``d`` (a date) is a configured study day."""
+    days = get("lessons.days", "daily")
+    if isinstance(days, str):
+        days = days.strip().lower()
+        if days in ("daily", "every day", "everyday", ""):
+            return True
+        wanted = {p.strip()[:3] for p in days.replace(" ", "").split(",") if p.strip()}
+    else:  # a YAML list
+        wanted = {str(p).strip().lower()[:3] for p in days}
+    return _WEEKDAYS[d.weekday()] in wanted

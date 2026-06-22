@@ -133,6 +133,23 @@ git.
    automatically (card text + voice).
 5. **Session end** — `tutor.py log-session` appends what you covered.
 
+### Lessons, plan, and reminders
+
+Onboarding also captures the **student's name**, a **study schedule** (how often
+and at what time), and a **full multi-lesson plan** (themes several lessons
+ahead, stored with `set-plan`). From these:
+
+- **Session greeting** — `context` returns `student_name`, the `next_lesson`
+  topic, and `due_reviews_today`. The tutor greets by name and either reviews
+  first (if anything is due), announces today's planned topic, or just starts.
+- **Lesson reminders** — separate from the word-review posts. On a study day at
+  the study time, the notifier (`notify`, or `lesson-reminder`) sends a Telegram
+  nudge: *"Hi {name}! Today's planned lesson: {topic}. To review: N words."*
+- Finishing a lesson's theme: `lesson-done` advances the plan to the next topic.
+
+Two reminder kinds, both outbound Telegram: the **lesson nudge** (come study,
+by schedule) and the **word-review posts** (the day 2/7/30 audio cards).
+
 ### Spaced repetition (Ebbinghaus)
 
 When a word is learned on day **D**, three reviews are scheduled: **D+2**,
@@ -165,7 +182,10 @@ You can rename or add aliases via `/commands`; they're stored in
 
 | Command | Description |
 |---|---|
-| `setup [--interface ru\|en\|uk] [--tts system\|local\|cloud] [--daily-words N] [--profile ...] [--enable-telegram] [--telegram-chat ID]` | Write config, init DB + wiki scaffold |
+| `setup [--interface ru\|en\|uk] [--tts local\|system\|cloud] [--name NAME] [--daily-words N] [--study-time HH:MM] [--study-days daily\|mon,wed,fri] [--profile ...] [--enable-telegram] [--telegram-chat ID]` | Write config, init DB + wiki scaffold |
+| `set-plan --stdin` | Store the multi-lesson plan (+ render `plan.md`) |
+| `lesson-done [--idx N]` | Mark a lesson complete so the plan advances |
+| `lesson-reminder [--on DATE]` | Send the Telegram lesson nudge (greeting + topic) |
 | `context` | Dump learner state for the skill (prints `first_run: true/false`) |
 | `add-word --stdin` (or `--json FILE`) `[--today DATE] [--no-audio] [--no-telegram]` | Add a word: card, variations, schedule, audio |
 | `speak --stdin` | Render audio for an ad-hoc phrase set (no DB entry) |

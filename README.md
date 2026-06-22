@@ -69,11 +69,14 @@ anywhere an API key is available.)
 ## Using it
 
 Just talk to the tutor in Claude Code — there are no setup commands to type. On
-**first run** it walks you through everything: your language → a short overview
-of how it works → **with-bot or without-bot** → pace → an agreed plan → the first
-lesson. Day to day: ask for a new word, listen to its audio, and do reviews when
-they're due. Your course updates itself — open the files under `data/course/`
-anytime.
+**first run** it walks you through everything: your language → your name → a short
+overview of how it works → **with-bot or without-bot** → how often and when you
+want to study → a full **multi-lesson plan** you agree on → the first lesson.
+
+Day to day it **greets you by name** and either reviews due words first, or
+announces today's planned topic, then teaches. With the bot on, it also nudges
+you to study on your schedule (*"Hi {name}! Today's lesson: …"*) and sends the
+day 2/7/30 review cards. Your course updates itself — open `data/course/` anytime.
 
 **With or without the Telegram bot.** Without: you review inside Claude. With: a
 bot also delivers each due review (card + audio) at a set time. If you choose the

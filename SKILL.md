@@ -50,8 +50,12 @@ Run `python3 cli/tutor.py context`.
 - If it reports an **empty/uninitialized** profile (no interface language, no
   words) → this is a **first run**: go to ONBOARDING.
 - Otherwise → load the returned profile, progress, recent sessions and word
-  lists. **Do not re-ask onboarding questions.** Continue where the learner left
-  off and proactively surface what is due today (`/review`).
+  lists. **Do not re-ask onboarding questions.** **Greet the learner by name**
+  (`student_name` from context) and follow the greeting rule: if
+  `due_reviews_today > 0`, offer to review first; else if `next_lesson` is set,
+  announce today's topic ("Сегодня по плану: …"); else just start. Example:
+  *"Привет, {name}! Сегодня у тебя занятие — тема «…». Давай сначала повторим N
+  слов, потом продолжим."*
 
 ---
 
@@ -62,10 +66,11 @@ silently.** The learner should understand what this is and what each choice
 means before anything is configured. Ask the questions one at a time, in plain
 language, and wait for answers. Walk through these steps in order:
 
-### 1. Ask the interface language
+### 1. Ask the interface language, then the student's name
 "First — which language should I teach you in: **English**, **Українська**, or
 **Русский**?" Wait for the answer, then load `references/interface/<lang>.md` and
-conduct everything from here in that language. Do **not** run setup yet.
+conduct everything from here in that language. Then ask **"What should I call
+you?"** (the name is used to greet them each session). Do **not** run setup yet.
 
 ### 2. Explain what this is and how it will work
 In the chosen language, give a short, friendly overview (your own words, not a
@@ -108,6 +113,9 @@ the due day, when you're not in Claude*:
 
 ### 4. Ask the work format
 - **Pace** — how many new words per day (default: 1).
+- **Schedule** — **how often and at what time** they want to study (e.g. daily at
+  19:00, or Mon/Wed/Fri evenings). This drives the lesson reminders. Capture days
+  + time for `--study-days` / `--study-time`.
 - **Focus** — pure survival right now, or broader once you're comfortable.
 - **Audio voice** — **Piper** (default: offline, free, set up by the installer),
   the macOS built-in voice, or a higher-quality **cloud** voice (needs an API
@@ -123,25 +131,29 @@ Record the answers into `data/journal/profile.md`.
 
 ### 6. Apply the configuration (tell the user what you're doing)
 Use the voice from step 4: `--tts local` (Piper, default), `--tts system`
-(macOS), or `--tts cloud`. Add `--daily-words <n>` (the pace from step 4).
+(macOS), or `--tts cloud`. Always include the personalisation from steps 1 & 4:
+`--name "<name>" --daily-words <n> --study-time <HH:MM> --study-days <daily|mon,wed,fri>`
+(shown abbreviated as `<personal>` below).
 
 - **Without bot:**
-  `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --profile skill-only`
+  `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --profile skill-only`
 
 - **With bot** — first the one-time Telegram steps: create a bot with
   **@BotFather** and copy its token; get your chat id from **@userinfobot**; set
   `TELEGRAM_BOT_TOKEN` in the environment. Then configure by where reminders run
   (the choice from step 3):
   - **Local (this machine):**
-    `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile local-notifier`
+    `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --enable-telegram --telegram-chat <id> --profile local-notifier`
     Then install the daily job: `deploy/launchd/com.tutor.notifier.plist` (macOS)
-    or `deploy/cron.example` (cron). Tell them reminders need the machine on.
+    or `deploy/cron.example` (cron) at the study time. Tell them reminders need
+    the machine on. The daily job sends the **lesson nudge** (greeting + today's
+    topic) on study days plus any due word reviews.
   - **Remote (24/7 server):**
-    `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile remote-notifier`
+    `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --enable-telegram --telegram-chat <id> --profile remote-notifier`
     set `sync.mode: git` with their private repo, then deploy:
     `python3 cli/tutor.py deploy --ssh user@host --send-time HH:MM`.
   - **Scheduled Claude agent (no server):**
-    `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile scheduled-agent`
+    `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --enable-telegram --telegram-chat <id> --profile scheduled-agent`
     Then help them: (1) push their data to a **private** git repo (`sync.mode:
     git`, commit `data/course`, `data/journal`, `sync/words.ndjson`); (2) create a
     daily Claude routine (use the `schedule` skill) that runs
@@ -151,10 +163,25 @@ Use the voice from step 4: `--tts local` (Piper, default), `--tts system`
   In all cases offer to verify now with `python3 cli/tutor.py test-telegram`.
 After running setup, say in one line what happened.
 
-### 7. Agree the plan, then start
-Write `data/course/plan.md` (stages → themes → priorities, starting from the
-most painful survival zone), **show it and get a yes**. Then give the **first
-lesson right away** so the learner sees the whole loop end to end.
+### 7. Build a full plan, agree it, then start
+Design a **complete multi-lesson plan — several lessons ahead** (e.g. 6-10),
+each with a clear **theme**, ordered from the most painful survival zone outward
+(market/café → transport → numbers & money → food → small talk → doctor → bank…),
+adapted to the diagnostic. Store it (this also renders `data/course/plan.md`):
+
+```
+python3 cli/tutor.py set-plan --stdin <<'JSON'
+{"lessons":[
+  {"topic":"Café & bakery survival","notes":"order, pay, be polite"},
+  {"topic":"Transport: Uber & bus","notes":"address, price"},
+  ... several more ...
+]}
+JSON
+```
+
+**Show the plan and get a yes** (adjust on request). Then give the **first lesson
+right away** so the learner sees the whole loop end to end. As lessons are taught,
+the next planned topic is what the greeting and lesson reminder announce.
 
 > Throughout: explain, don't hide. After any toolkit command, tell the learner
 > in one line what it did ("Saved — it's in your course under `words/…`").
@@ -188,7 +215,9 @@ package and hand it to the toolkit:
 
 After the session, append a short log:
 `python3 cli/tutor.py log-session --stdin` (what you covered, wins, mistakes,
-with `[[words/...]]` links).
+with `[[words/...]]` links). When you finish a lesson's theme, mark it complete
+so the plan advances: `python3 cli/tutor.py lesson-done` (the greeting and the
+Telegram nudge will then announce the next planned topic).
 
 ---
 
@@ -223,7 +252,7 @@ Default aliases (the learner may rename/add via `/commands`, stored in
 |---|---|
 | `/word` | New word of the day → card + 10 variations + audio (`add-word`) |
 | `/review` | Show today's reviews (`due-today`) and drill them aloud |
-| `/plan` | Open/update `data/course/plan.md` |
+| `/plan` | Show/update the multi-lesson plan (`set-plan` → `plan.md`) |
 | `/course` | Overview of the wiki (`data/course/index.md`) |
 | `/progress` | Progress (`stats` + `data/course/progress.md`) |
 | `/setup` | Configure Telegram / language / TTS / profile (`setup`) |

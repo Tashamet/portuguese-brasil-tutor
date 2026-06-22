@@ -81,6 +81,12 @@ def cmd_setup(args) -> None:
         cfg.setdefault("telegram", {})["enabled"] = True
     if args.daily_words:
         cfg["daily_new_words"] = int(args.daily_words)
+    if args.name:
+        cfg["student_name"] = args.name
+    if args.study_time:
+        cfg.setdefault("lessons", {})["time"] = args.study_time
+    if args.study_days:
+        cfg.setdefault("lessons", {})["days"] = args.study_days
 
     paths.CONFIG_PATH.write_text(
         yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -89,6 +95,8 @@ def cmd_setup(args) -> None:
     db.init()
     if args.interface:
         db.set_setting("interface_language", args.interface)
+    if args.name:
+        db.set_setting("student_name", args.name)
     wiki.ensure_scaffold(db.get_setting("interface_language"))
     print(f"Config written to {paths.CONFIG_PATH}")
     print("Telegram setup: get a bot token from @BotFather, set it as the env var")
@@ -227,6 +235,14 @@ def cmd_notify(args) -> None:
             if proc.returncode != 0:
                 print(f"git pull failed: {proc.stderr.strip()}", file=sys.stderr)
         sync.import_bundle()
+    # Lesson nudge on study days (separate from the due-word posts below).
+    on = _parse_date(args.on)
+    if (not args.no_lesson and config.lesson_reminders_enabled()
+            and config.is_study_day(on)):
+        try:
+            cmd_lesson_reminder(args)
+        except SystemExit as e:
+            print(f"lesson reminder skipped: {e}", file=sys.stderr)
     cmd_send_due(args)
 
 
@@ -246,7 +262,18 @@ def cmd_context(args) -> None:
         out.append("# No saved learner yet — run ONBOARDING (ask interface language first).")
         print("\n".join(out))
         return
-    out += [f"# Tutor context (interface: {lang})", ""]
+    name = config.student_name() or (db.get_setting("student_name") or "")
+    nl = db.next_lesson()
+    due = len(db.due_reviews())
+    out += [
+        f"# Tutor context (interface: {lang})",
+        f"student_name: {name or '—'}",
+        f"next_lesson: {nl['topic'] if nl else '—'}",
+        f"due_reviews_today: {due}",
+        "# Greeting: address the student by name. If due_reviews_today > 0, offer to"
+        " review first; else if next_lesson is set, announce that topic; else just start.",
+        "",
+    ]
     if paths.PROFILE_MD.exists():
         out += ["## profile.md", paths.PROFILE_MD.read_text(encoding="utf-8"), ""]
     if paths.COURSE_PROGRESS.exists():
@@ -275,6 +302,60 @@ def cmd_log_session(args) -> None:
 def cmd_stats(args) -> None:
     db.init()
     print(json.dumps(db.stats(), ensure_ascii=False, indent=2))
+
+
+def cmd_set_plan(args) -> None:
+    """Store the multi-lesson plan and render course/plan.md.
+
+    Input JSON: a list of lessons, or {"lessons": [...]}. Each lesson:
+    {"topic": ..., "notes": ...}. Pass the FULL plan (several lessons ahead).
+    """
+    db.init()
+    payload = _load_payload(args)
+    lessons = payload if isinstance(payload, list) else payload.get("lessons", [])
+    if not lessons:
+        raise SystemExit("no lessons (provide a list of {topic, notes})")
+    db.set_lessons(lessons)
+    lang = _interface_lang()
+    lines = [f"# {wiki.t('learning_plan', lang)}", ""]
+    for i, le in enumerate(lessons, 1):
+        notes = f" — {le['notes']}" if le.get("notes") else ""
+        lines.append(f"{i}. {le['topic']}{notes}")
+    lines += ["", f"{wiki.t('related', lang)}: [[index]], [[progress]]"]
+    paths.COURSE_PLAN.parent.mkdir(parents=True, exist_ok=True)
+    paths.COURSE_PLAN.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"stored {len(lessons)} lessons → {paths.COURSE_PLAN}")
+
+
+def cmd_lesson_done(args) -> None:
+    """Mark a lesson complete so the plan advances (default: the next one)."""
+    db.init()
+    idx = args.idx
+    if idx is None:
+        nl = db.next_lesson()
+        if not nl:
+            print("no planned lesson to complete")
+            return
+        idx = nl["idx"]
+    db.mark_lesson_done(int(idx))
+    nxt = db.next_lesson()
+    print(f"lesson {idx} done; next: {nxt['topic'] if nxt else '— (plan finished)'}")
+
+
+def cmd_lesson_reminder(args) -> None:
+    """Send the Telegram lesson nudge (greeting + today's topic + review count)."""
+    db.init()
+    from core import content, telegram
+    chat_id = config.telegram_chat_id()
+    if not config.telegram_enabled() or not chat_id:
+        raise SystemExit("Telegram is disabled or chat_id missing (see /setup)")
+    lang = _interface_lang()
+    name = config.student_name() or (db.get_setting("student_name") or "")
+    nl = db.next_lesson()
+    topic = nl["topic"] if nl else ""
+    due = len(db.due_reviews(_parse_date(args.on)))
+    telegram.send_message(chat_id, content.lesson_reminder_text(name, topic, due, lang))
+    print("lesson reminder sent")
 
 
 def cmd_commands(args) -> None:
@@ -404,7 +485,9 @@ def cmd_selftest(args) -> None:
     try:
         # 2. setup (use the requested voice engine; default Piper)
         rc, out, err = _run_cli(["setup", "--interface", lang, "--tts", args.tts,
-                                 "--profile", "skill-only"], sandbox)
+                                 "--name", "Tester", "--study-days", "mon,wed,fri",
+                                 "--study-time", "19:00", "--profile", "skill-only"],
+                                sandbox)
         check("setup", rc == 0, err.strip())
 
         # 3. add-word (no audio/telegram), captured today so reviews are known
@@ -444,7 +527,15 @@ def cmd_selftest(args) -> None:
         rc, out, _ = _run_cli(["check-links"], sandbox)
         check("link check runs", rc in (0, 1), out.strip()[:80])
 
-        # 9. optional audio render with the configured engine
+        # 9. multi-lesson plan + greeting context (name + next lesson)
+        plan = json.dumps({"lessons": [{"topic": "Café"}, {"topic": "Transport"}]})
+        rc, _, err = _run_cli(["set-plan", "--stdin"], sandbox, stdin=plan)
+        rc2, ctx, _ = _run_cli(["context"], sandbox)
+        check("plan + greeting context",
+              rc == 0 and "student_name: Tester" in ctx and "next_lesson: Café" in ctx,
+              (err or ctx).strip()[:120])
+
+        # 10. optional audio render with the configured engine
         if args.audio:
             engine_ok = bool(shutil.which("ffmpeg")) and _engine_available(args.tts)
             if not engine_ok:
@@ -539,6 +630,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--telegram-chat")
     s.add_argument("--enable-telegram", action="store_true")
     s.add_argument("--daily-words", type=int, help="new words per day (pace)")
+    s.add_argument("--name", help="student's name (for greetings)")
+    s.add_argument("--study-time", help="lesson reminder time HH:MM")
+    s.add_argument("--study-days", help="study days: daily or e.g. mon,wed,fri")
     s.set_defaults(func=cmd_setup)
 
     s = sub.add_parser("add-word", help="add a word (+variations, audio, schedule)")
@@ -564,9 +658,21 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("send-due", help="deliver due reviews to Telegram")
     s.add_argument("--on"); s.set_defaults(func=cmd_send_due)
 
-    s = sub.add_parser("notify", help="pull+import (git mode) then send due reviews")
+    s = sub.add_parser("notify", help="pull+import (git mode), lesson nudge, send due reviews")
     s.add_argument("--on"); s.add_argument("--no-pull", action="store_true")
+    s.add_argument("--no-lesson", action="store_true", help="skip the lesson reminder")
     s.set_defaults(func=cmd_notify)
+
+    s = sub.add_parser("set-plan", help="store the multi-lesson plan (+ render plan.md)")
+    s.add_argument("--json"); s.add_argument("--stdin", action="store_true")
+    s.set_defaults(func=cmd_set_plan)
+
+    s = sub.add_parser("lesson-done", help="mark a lesson complete (plan advances)")
+    s.add_argument("--idx", type=int, help="lesson index (default: next planned)")
+    s.set_defaults(func=cmd_lesson_done)
+
+    s = sub.add_parser("lesson-reminder", help="send the Telegram lesson nudge")
+    s.add_argument("--on"); s.set_defaults(func=cmd_lesson_reminder)
 
     s = sub.add_parser("context", help="dump learner context for the skill")
     s.set_defaults(func=cmd_context)
