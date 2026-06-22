@@ -11,7 +11,8 @@ Word payload (for ``add-word``), JSON:
       "lemma": "então",
       "gloss": "well / then / so",
       "pos": "adverb", "topic": "small-talk", "priority": 2,
-      "card": "# ENTÃO\\n...markdown card...",
+      "pronunciation": "então -> tão -> 'in-towng'",
+      "card": "# ENTÃO\\n...comprehensive markdown card (superset of the audio)...",
       "variations": [
         {"pt": "Então, o que você acha?",
          "gloss": "Well, what do you think?",
@@ -120,8 +121,10 @@ def cmd_add_word(args) -> None:
     lang = _interface_lang()
 
     slug = wiki.slugify(payload["lemma"])
-    # 1. Write the wiki card (or a minimal one).
+    # 1. Write the wiki card. Always guarantee the card is a SUPERSET of the
+    #    audio: every phrase that goes into the recording is recorded in the .md.
     card_md = payload.get("card") or _minimal_card(payload, slug)
+    card_md = _ensure_phrases_in_card(card_md, payload, lang)
     card_path = wiki.write_word_card(slug, card_md)
 
     # 2. Persist the word + variations + schedule.
@@ -485,15 +488,44 @@ def _refresh_wiki(lang: str) -> None:
     wiki.update_progress(stage, known, learning, s["due_today"], lang)
 
 
+def _phrases_section(payload: dict, lang: str) -> str:
+    """A complete, numbered list of every phrase that goes into the audio."""
+    lines = [f"## {wiki.t('audio_phrases', lang)}", ""]
+    for i, v in enumerate(payload.get("variations", []), 1):
+        ctx = f"  _{v['context']}_" if v.get("context") else ""
+        gloss = f" — {v['gloss']}" if v.get("gloss") else ""
+        lines.append(f"{i}. **{v['pt']}**{gloss}{ctx}")
+    return "\n".join(lines)
+
+
+def _ensure_phrases_in_card(card_md: str, payload: dict, lang: str) -> str:
+    """Append the complete phrase list unless the card already contains them all.
+
+    Guarantees the .md is a superset of the audio — no phrase the learner hears
+    is missing from the written card.
+    """
+    variations = payload.get("variations", [])
+    if not variations:
+        return card_md
+    if all(v.get("pt") and v["pt"] in card_md for v in variations):
+        return card_md  # the card already lists every phrase
+    out = card_md.rstrip() + "\n\n" + _phrases_section(payload, lang) + "\n"
+    if payload.get("topic") and "[[themes/" not in card_md:
+        related = wiki.t("related", lang)
+        out += f"\n{related}: [[themes/{wiki.slugify(payload['topic'])}]], [[index]]\n"
+    return out
+
+
 def _minimal_card(payload: dict, slug: str) -> str:
-    lines = [f"# {payload['lemma'].upper()}", "",
-             f"**{payload.get('gloss', '')}**", ""]
-    for v in payload.get("variations", []):
-        ctx = f" _( {v['context']} )_" if v.get("context") else ""
-        lines.append(f"- {v['pt']} — {v.get('gloss', '')}{ctx}")
+    lang = _interface_lang()
+    lines = [f"# {payload['lemma'].upper()}", ""]
+    if payload.get("gloss"):
+        lines += [f"**{wiki.t('meaning', lang)}:** {payload['gloss']}", ""]
+    if payload.get("pronunciation"):
+        lines += [f"_{payload['pronunciation']}_", ""]
     if payload.get("topic"):
-        related = wiki.t("related", _interface_lang())
-        lines += ["", f"{related}: [[themes/{wiki.slugify(payload['topic'])}]], [[index]]"]
+        related = wiki.t("related", lang)
+        lines += [f"{related}: [[themes/{wiki.slugify(payload['topic'])}]], [[index]]"]
     return "\n".join(lines)
 
 

@@ -55,6 +55,9 @@ LABELS = {
     "goals": {"en": "Goals", "ru": "Цели", "uk": "Цілі"},
     "panic_zones": {"en": "Panic zones", "ru": "Зоны паники", "uk": "Зони паніки"},
     "session": {"en": "Session", "ru": "Занятие", "uk": "Заняття"},
+    "audio_phrases": {"en": "Phrases (from the audio)", "ru": "Фразы из аудио",
+                      "uk": "Фрази з аудіо"},
+    "meaning": {"en": "Meaning", "ru": "Значение", "uk": "Значення"},
 }
 
 

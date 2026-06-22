@@ -240,17 +240,22 @@ the next planned topic is what the greeting and lesson reminder announce.
 When you introduce a new word (via `/word` or naturally), produce a complete
 package and hand it to the toolkit:
 
-1. **Cultural card** — a rich Markdown card like the `então` example: meanings
-   with examples, real-life pronunciation reductions (e.g. `então → tão →
-   "интаум"`), idioms and set phrases. Cross-link with `[[themes/<topic>]]` and
-   `[[grammar/<topic>]]`. Create those theme/grammar files if missing so links
-   are never broken.
+1. **Rich, expansive card** — write a thorough Markdown card (`card` field) like
+   the `então` example, with sections for: **meanings** with examples; real-life
+   **pronunciation reductions** (e.g. `então → tão → "интаум"`); **idioms and set
+   phrases**; common **mistakes** to avoid; and **all the example phrases** that
+   go into the audio (every one — the card must be a *superset* of the audio, not
+   a shorter summary). Pass `pronunciation` too. Cross-link `[[themes/<topic>]]`
+   and `[[grammar/<topic>]]` (create those files if missing so links never break).
+   The toolkit also guarantees every audio phrase is appended to the card, but
+   aim to write the complete, detailed card yourself.
 2. **Real cultural links** — use **WebSearch** to find genuine videos, songs,
    books or memes for immersion. **Never invent URLs.** Put them in the card.
 3. **10 contextual variations** — the same word in 10 different times/places
    (morning at the market, evening with a neighbour, in an Uber, at the
    doctor…), each with a pt sentence + an interface-language gloss + a short
-   context label. This drives the 2-4 minute audio.
+   context label. This drives the 2-4 minute audio **and** must all appear in the
+   card.
 4. **Save it** — pass a JSON payload to:
    `python3 cli/tutor.py add-word --stdin` (see the payload schema in
    `cli/tutor.py` docstring and `references/audio-script-format.md`). This

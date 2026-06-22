@@ -45,8 +45,13 @@ JSON
 Notes:
 - `gloss`/`context` are in the **interface language** (en/uk/ru). `pt` is always
   Brazilian Portuguese.
+- Optional `pronunciation` (word-level transcription/reductions) shows on the card.
 - The `card` is the body of the Telegram review post; write it for a human to
-  read, with real cultural links (found via WebSearch — never invented).
+  read, with real cultural links (found via WebSearch — never invented). Make it
+  **comprehensive — a superset of the audio**: meanings, pronunciation, idioms,
+  mistakes, and every example phrase. If any audio phrase is missing from your
+  `card`, the toolkit appends a complete "Phrases (from the audio)" section, so
+  the .md is never thinner than the recording.
 - `add-word` schedules reviews at day 2/7/30, renders audio to
   `data/audio/<slug>.ogg`, and (if Telegram is enabled) uploads once and stores
   the reusable `file_id`.
