@@ -2,7 +2,7 @@
 # Telegram reminders arrive when the Mac is on. Same disk, no sync needed.
 deployment_profile: local-notifier
 tts:
-  provider: system
+  provider: local
 telegram:
   enabled: true
   chat_id: ""        # set yours

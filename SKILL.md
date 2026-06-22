@@ -91,8 +91,9 @@ Lay out the two options plainly and let them choose:
 ### 4. Ask the work format
 - **Pace** — how many new words per day (default: 1).
 - **Focus** — pure survival right now, or broader once you're comfortable.
-- **Audio voice** — built-in (free, default) or higher-quality cloud voice
-  (needs an API key). Mention it briefly; default to built-in.
+- **Audio voice** — **Piper** (default: offline, free, set up by the installer),
+  the macOS built-in voice, or a higher-quality **cloud** voice (needs an API
+  key). Mention briefly; default to Piper.
 
 ### 5. Short survival diagnostic
 Ask in the interface language:
@@ -103,14 +104,14 @@ Ask in the interface language:
 Record the answers into `data/journal/profile.md`.
 
 ### 6. Apply the configuration (tell the user what you're doing)
-Add `--daily-words <n>` (the pace from step 4) and `--tts cloud` if they chose
-the cloud voice; otherwise `--tts system`.
+Use the voice from step 4: `--tts local` (Piper, default), `--tts system`
+(macOS), or `--tts cloud`. Add `--daily-words <n>` (the pace from step 4).
 - **Without bot:**
-  `python3 cli/tutor.py setup --interface <lang> --tts system --daily-words <n> --profile skill-only`
+  `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --profile skill-only`
 - **With bot:** explain the one-time steps first — create a bot with
   **@BotFather** and copy its token; get your chat id from **@userinfobot**; set
   `TELEGRAM_BOT_TOKEN` in the environment. Then:
-  `python3 cli/tutor.py setup --interface <lang> --tts system --daily-words <n> --enable-telegram --telegram-chat <id> --profile local-notifier`
+  `python3 cli/tutor.py setup --interface <lang> --tts local --daily-words <n> --enable-telegram --telegram-chat <id> --profile local-notifier`
   and offer to verify it with `python3 cli/tutor.py test-telegram`.
 After running setup, say in one line what happened.
 

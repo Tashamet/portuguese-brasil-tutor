@@ -3,7 +3,7 @@
 # words travel to the host via a git bundle, audio via Telegram file_id.
 deployment_profile: remote-notifier
 tts:
-  provider: system          # or cloud, if you want best quality at authoring time
+  provider: local          # or cloud, if you want best quality at authoring time
 telegram:
   enabled: true
   chat_id: ""               # set yours

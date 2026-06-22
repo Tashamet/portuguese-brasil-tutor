@@ -207,9 +207,15 @@ Claude writes the script; a TTS engine renders it. The provider is chosen in
 
 | Provider | Quality | Setup | Notes |
 |---|---|---|---|
-| `system` | good | none | macOS `say`; pt-BR voice **Luciana** (default) |
-| `local` | better | install Piper + `.onnx` voices | offline, free, cross-platform |
+| `local` | good | installer (piper-tts) | **default** — Piper, offline, free, cross-platform; voices auto-download to `~/.local/share/piper-tts/voices` |
+| `system` | good | none | macOS `say`; pt-BR voice **Luciana** (macOS only) |
 | `cloud` | best | API key in env | ElevenLabs (`ELEVENLABS_API_KEY`) or OpenAI (`OPENAI_API_KEY`) |
+
+The default **Piper** voices: `pt_BR-faber-medium`, `en_US-lessac-medium`,
+`ru_RU-irina-medium`, `uk_UA-ukrainian_tts-medium` (override via
+`tts.local.piper_voices`). They download once on first use; the installer
+pre-fetches the pt-BR voice. On python.org macOS builds, `certifi` is used to
+fix SSL when downloading voices.
 
 Each lesson is built from `core/content.py`: intro (interface lang) → the word
 slow then natural → for each variation: context label → pt natural → pt slow →
@@ -401,6 +407,8 @@ To rehearse a reminder exactly as it will arrive, add a word, then:
 | Symptom | Cause / fix |
 |---|---|
 | `'ffmpeg' not found` | Install ffmpeg; ensure `ffmpeg`/`ffprobe` on PATH |
+| `piper-tts is not installed` | `pip install piper-tts certifi`, or rerun install.sh |
+| Piper voice download SSL error | python.org macOS cert issue — `pip install certifi` (the adapter sets `SSL_CERT_FILE`) |
 | `'say' not found` | `system` TTS is macOS-only; switch to `local`/`cloud` |
 | `TELEGRAM_BOT_TOKEN not set` | Export the token in the environment |
 | `Telegram is disabled or chat_id missing` | Run `/setup` / `setup --enable-telegram --telegram-chat ID` |

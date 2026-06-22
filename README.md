@@ -49,53 +49,40 @@ pip install -r requirements.txt          # PyYAML, requests (+ ffmpeg on PATH)
 - The only thing that runs **outside Claude** is a tiny cron notifier that
   delivers due reviews. No interactive bot, no always-on server.
 
-## Run it as a Claude skill
+## Where to run it
 
-The skill entry point is [SKILL.md](SKILL.md) at the repo root; the rest of the
-repo is the toolkit it calls. For the audio/database/sync to work, run it where
-the toolkit can execute (Python 3.11+, `ffmpeg`, and a TTS engine) — e.g. with
-**Claude Code** in a clone of this repo on your machine. In environments without
-Python/TTS, the tutor still teaches and transcribes but cannot render audio;
-`--tts cloud` (ElevenLabs/OpenAI) works anywhere an API key is available.
+Use **Claude Code** (terminal/IDE or the desktop app), in the installed skill
+directory. The skill is a prompt **plus** a toolkit that runs on your machine —
+it writes a SQLite database, renders audio with `ffmpeg` and a TTS engine, and
+keeps your course files. Plain web chat at claude.ai has no local environment, so
+audio and the database won't work there. Use Claude Code. (Cloud TTS works
+anywhere an API key is available.)
 
 ## Requirements
 
-- Python 3.11+, `pip install -r requirements.txt`
-- `ffmpeg` + `ffprobe` on PATH (audio assembly)
-- TTS: **system** (macOS `say`, default, zero-install) / **local** (Piper) /
-  **cloud** (ElevenLabs or OpenAI; API key in env)
+- Python 3.11+ and `ffmpeg`/`ffprobe` on PATH (the installer handles Python deps)
+- Voice engine — **Piper** by default: offline, free, cross-platform; the
+  installer installs it and downloads the Brazilian Portuguese voice.
+  Alternatives: **system** (macOS `say`) or **cloud** (ElevenLabs/OpenAI, API
+  key in env).
 
-## Three deployment profiles
+## Using it
 
-### A — skill + database
-```
-python3 cli/tutor.py setup --interface en --tts system --profile skill-only
-```
-Use the skill in Claude. See due reviews with `/review`. Nothing runs in the
-background; no Telegram.
+Just talk to the tutor in Claude Code — there are no setup commands to type. On
+**first run** it walks you through everything: your language → a short overview
+of how it works → **with-bot or without-bot** → pace → an agreed plan → the first
+lesson. Day to day: ask for a new word, listen to its audio, and do reviews when
+they're due. Your course updates itself — open the files under `data/course/`
+anytime.
 
-### B — skill + local notifier
-```
-python3 cli/tutor.py setup --interface en --tts system --profile local-notifier \
-    --enable-telegram --telegram-chat <YOUR_CHAT_ID>
-export TELEGRAM_BOT_TOKEN=...        # from @BotFather
-```
-Install the daily reminder via `deploy/launchd/com.tutor.notifier.plist`
-or `deploy/cron.example`. Reminders arrive when the machine is on.
-
-### C — skill + remote notifier
-Author locally; words travel to the host via a private git repo, audio via
-Telegram `file_id`. On the host, set `TELEGRAM_BOT_TOKEN`, then:
-```
-python3 cli/tutor.py deploy --ssh user@host --send-time 09:00
-```
-This copies the package, installs a venv + deps, and a daily cron that runs
-`git pull → tutor.py import → send-due`. The `remote-notifier.yaml` profile is
-safe to share (no secrets).
+**With or without the Telegram bot.** Without: you review inside Claude. With: a
+bot also delivers each due review (card + audio) at a set time. The tutor sets
+this up during onboarding. For unattended 24/7 reminders on a server, see the
+deployment profiles in [MANUAL.md](MANUAL.md).
 
 ## Commands
 
-**Slash commands (in Claude):**
+These slash commands are what you use in Claude (all in English):
 
 | Command | What |
 |---|---|
@@ -103,36 +90,16 @@ safe to share (no secrets).
 | `/listen` · `/pronounce` | Render audio for a phrase/set and deliver it |
 | `/review` | Show and drill today's due reviews |
 | `/plan` · `/course` · `/progress` | Plan, wiki overview, progress |
-| `/setup` | Configure Telegram / language / TTS / profile |
+| `/setup` | Configure Telegram / language / voice / profile |
 | `/commands` | Manage custom hotkeys |
-| `/situation [place]` · `/pronounce [phrase]` | Role-play · pronunciation |
+| `/situation [place]` | Role-play (shop, doctor, Uber, bank, neighbour) |
 
-**CLI commands** (`python3 cli/tutor.py <command>`):
-
-| Command | What |
-|---|---|
-| `setup` | write config, init db + wiki |
-| `context` | dump learner state for the skill |
-| `add-word --stdin` | add word (+10 variations, audio, schedule) |
-| `speak --stdin` | render audio for an ad-hoc phrase set |
-| `due-today [--on DATE]` | list reviews due |
-| `send-due` | deliver due reviews to Telegram |
-| `export` / `import` | git sync bundle (`sync/words.ndjson`) |
-| `stats` | progress |
-| `selftest [--lang] [--audio]` | end-to-end self-check (sandboxed) |
-| `test-telegram [--voice]` | send a test message/voice to your chat |
-
-## Verify it works
-
-```bash
-python3 cli/tutor.py selftest          # checks the whole pipeline, prints PASS/FAIL
-python3 cli/tutor.py test-telegram      # checks the bot (needs TELEGRAM_BOT_TOKEN)
-```
+Under the hood the skill drives a CLI (`cli/tutor.py`) for you — you don't type
+it yourself. Its full reference (plus the data model, audio, sync, deployment
+and troubleshooting) is in [MANUAL.md](MANUAL.md). To sanity-check an install:
+`python3 cli/tutor.py selftest`.
 
 The wiki is written in your chosen interface language (`en` / `ru` / `uk`).
-
-See [MANUAL.md](MANUAL.md) for every command, the data model, audio, sync and
-troubleshooting.
 
 ## Data layout
 

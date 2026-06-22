@@ -8,17 +8,13 @@ review_intervals: [2, 7, 30]     # Ebbinghaus spaced repetition (days)
 daily_new_words: 1
 
 tts:
-  provider: system               # system (macOS say, default) | local (Piper) | cloud
+  provider: local                # local (Piper, default) | system (macOS say) | cloud
+  local:                         # Piper — offline, free, cross-platform; voices auto-download
+    # voices_dir: ~/.local/share/piper-tts/voices
+    # piper_voices: { pt: pt_BR-faber-medium, ru: ru_RU-irina-medium, en: en_US-lessac-medium, uk: uk_UA-ukrainian_tts-medium }
   system:
-    voice_pt: Luciana            # built-in macOS pt-BR voice
+    voice_pt: Luciana            # built-in macOS pt-BR voice (macOS only)
     # voices: { pt: Luciana, ru: Milena, en: Samantha, uk: Lesya }
-  local:
-    piper_bin: piper
-    piper_voices:                # map language -> path to a Piper .onnx model
-      pt: /path/to/pt_BR-faber-medium.onnx
-      ru: /path/to/ru_RU-denis-medium.onnx
-      en: /path/to/en_US-amy-medium.onnx
-      uk: /path/to/uk_UA-lada-x_low.onnx
   cloud:
     engine: elevenlabs           # elevenlabs | openai
     voice_pt: ""                 # ElevenLabs voice id, or OpenAI voice name (e.g. alloy)

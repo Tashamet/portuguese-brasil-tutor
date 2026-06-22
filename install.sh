@@ -33,11 +33,28 @@ else
 fi
 
 echo "==> Installing Python dependencies"
-if ! python3 -m pip install --user -q -r "$DIR/requirements.txt" 2>/dev/null; then
+PIP=(python3 -m pip install --user -q)
+if ! "${PIP[@]}" -r "$DIR/requirements.txt" 2>/dev/null; then
   echo "   pip --user unavailable; creating a virtualenv at $DIR/.venv"
   python3 -m venv "$DIR/.venv"
-  "$DIR/.venv/bin/pip" install -q -r "$DIR/requirements.txt"
+  PY="$DIR/.venv/bin/python"
+  PIP=("$PY" -m pip install -q)
+  "${PIP[@]}" -r "$DIR/requirements.txt"
+else
+  PY=python3
 fi
+
+echo "==> Installing the default voice engine (Piper)"
+# certifi fixes SSL cert failures on python.org macOS builds when downloading voices.
+"${PIP[@]}" piper-tts certifi || echo "!! could not install piper-tts (you can switch to --tts system/cloud)"
+
+echo "==> Pre-downloading the Brazilian Portuguese voice"
+VOICES_DIR="$HOME/.local/share/piper-tts/voices"
+mkdir -p "$VOICES_DIR"
+SSL_CERT_FILE="$("$PY" -m certifi 2>/dev/null || true)" \
+  "$PY" -m piper.download_voices pt_BR-faber-medium --download-dir "$VOICES_DIR" \
+  >/dev/null 2>&1 && echo "   voice ready (others download on first use)" \
+  || echo "!! voice pre-download skipped (will download on first lesson)"
 
 if command -v ffmpeg >/dev/null 2>&1; then
   echo "==> ffmpeg found"

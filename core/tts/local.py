@@ -1,45 +1,83 @@
-"""Piper adapter — offline, free, cross-platform, higher quality than ``say``.
+"""Piper adapter — offline, free, cross-platform. The default voice engine.
 
-Needs the ``piper`` binary and per-language ``.onnx`` voice models. Configure
-``config.tts.local.piper_bin`` and ``config.tts.local.piper_voices`` (a map of
-language -> path to the .onnx model). Mixed-language lessons are handled the
-same way as elsewhere: one clip per segment using that language's voice.
+Uses the ``piper-tts`` Python package (``python3 -m piper``). Voices are
+downloaded on first use into a shared cache and reused. Works on macOS and
+Linux alike, which is why it's the default (unlike macOS-only ``say``).
+
+Config (all optional):
+    tts.local.voices_dir   where to cache .onnx voices (default ~/.local/share/piper-tts/voices)
+    tts.local.piper_voices map of lang -> voice name (overrides the defaults below)
 """
 from __future__ import annotations
 
-import shutil
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from .. import config
-from .audio import AudioError, run
+from .audio import AudioError
 from .base import Segment, TTSAdapter
+
+# Confirmed voice names from the piper voices catalogue.
+DEFAULT_VOICES = {
+    "pt": "pt_BR-faber-medium",
+    "en": "en_US-lessac-medium",
+    "ru": "ru_RU-irina-medium",
+    "uk": "uk_UA-ukrainian_tts-medium",
+}
+
+
+def _ssl_env() -> dict:
+    """Env with SSL_CERT_FILE set — fixes python.org macOS cert failures."""
+    env = dict(os.environ)
+    if "SSL_CERT_FILE" not in env:
+        try:
+            import certifi
+            env["SSL_CERT_FILE"] = certifi.where()
+        except Exception:
+            pass
+    return env
 
 
 class LocalTTS(TTSAdapter):
     name = "local"
 
     def __init__(self) -> None:
-        self.bin = config.get("tts.local.piper_bin", "piper") or "piper"
-        if not shutil.which(self.bin) and not Path(self.bin).exists():
+        # Confirm the piper package is importable for this interpreter.
+        probe = subprocess.run([sys.executable, "-c", "import piper"],
+                               capture_output=True, text=True)
+        if probe.returncode != 0:
             raise AudioError(
-                f"Piper binary '{self.bin}' not found — install piper or set "
-                "tts.local.piper_bin"
+                "piper-tts is not installed for this Python. Install it with "
+                "`pip install piper-tts`, or run the project's install.sh."
             )
-        self.voices = config.get("tts.local.piper_voices", {}) or {}
-        if not self.voices:
-            raise AudioError("tts.local.piper_voices is empty — map lang -> .onnx model")
+        vdir = config.get("tts.local.voices_dir") or "~/.local/share/piper-tts/voices"
+        self.voices_dir = Path(vdir).expanduser()
+        self.voices_dir.mkdir(parents=True, exist_ok=True)
+        self.voices = {**DEFAULT_VOICES, **(config.get("tts.local.piper_voices", {}) or {})}
+
+    def _ensure_voice(self, voice: str) -> None:
+        if (self.voices_dir / f"{voice}.onnx").exists():
+            return
+        proc = subprocess.run(
+            [sys.executable, "-m", "piper.download_voices", voice,
+             "--download-dir", str(self.voices_dir)],
+            capture_output=True, text=True, env=_ssl_env(),
+        )
+        if proc.returncode != 0 or not (self.voices_dir / f"{voice}.onnx").exists():
+            raise AudioError(f"Could not download Piper voice '{voice}': "
+                             f"{proc.stderr.strip()[:200]}")
 
     def render_clip(self, segment: Segment, dst: Path) -> Path:
-        model = self.voices.get(segment.lang) or self.voices.get("pt")
-        if not model:
-            raise AudioError(f"No Piper voice configured for '{segment.lang}'")
+        voice = self.voices.get(segment.lang) or self.voices["pt"]
+        self._ensure_voice(voice)
         wav = dst.with_suffix(".wav")
-        # Piper reads text on stdin and writes a wav to --output_file.
-        length_scale = "1.3" if segment.slow else "1.0"
-        cmd = [self.bin, "--model", str(model), "--length_scale", length_scale,
-               "--output_file", str(wav)]
-        proc = __import__("subprocess").run(cmd, input=segment.text, text=True,
-                                            capture_output=True)
-        if proc.returncode != 0:
-            raise AudioError(f"piper failed: {proc.stderr.strip()}")
+        cmd = [sys.executable, "-m", "piper", "-m", voice,
+               "--data-dir", str(self.voices_dir), "-f", str(wav),
+               "--length-scale", "1.3" if segment.slow else "1.0"]
+        proc = subprocess.run(cmd, input=segment.text, text=True,
+                              capture_output=True, env=_ssl_env())
+        if proc.returncode != 0 or not wav.exists():
+            raise AudioError(f"piper synthesis failed: {proc.stderr.strip()[:200]}")
         return wav

@@ -345,6 +345,18 @@ SELFTEST_WORD = {
 }
 
 
+def _engine_available(provider: str) -> bool:
+    if provider == "system":
+        return bool(shutil.which("say"))
+    if provider == "local":
+        return subprocess.run([sys.executable, "-c", "import piper"],
+                              capture_output=True).returncode == 0
+    if provider == "cloud":
+        return bool(os.environ.get("ELEVENLABS_API_KEY")
+                    or os.environ.get("OPENAI_API_KEY"))
+    return False
+
+
 def _run_cli(cli_args: list[str], data_dir: str, stdin: str | None = None):
     env = {**os.environ, "TUTOR_DATA_DIR": data_dir}
     proc = subprocess.run(
@@ -372,8 +384,8 @@ def cmd_selftest(args) -> None:
     sandbox = tempfile.mkdtemp(prefix="tutor_selftest_")
     sandbox2 = tempfile.mkdtemp(prefix="tutor_selftest_import_")
     try:
-        # 2. setup
-        rc, out, err = _run_cli(["setup", "--interface", lang, "--tts", "system",
+        # 2. setup (use the requested voice engine; default Piper)
+        rc, out, err = _run_cli(["setup", "--interface", lang, "--tts", args.tts,
                                  "--profile", "skill-only"], sandbox)
         check("setup", rc == 0, err.strip())
 
@@ -414,19 +426,21 @@ def cmd_selftest(args) -> None:
         rc, out, _ = _run_cli(["check-links"], sandbox)
         check("link check runs", rc in (0, 1), out.strip()[:80])
 
-        # 9. optional audio render (needs ffmpeg + say)
+        # 9. optional audio render with the configured engine
         if args.audio:
-            have = shutil.which("ffmpeg") and shutil.which("say")
-            if not have:
-                check("audio render", True, "skipped (ffmpeg/say missing)")
+            engine_ok = bool(shutil.which("ffmpeg")) and _engine_available(args.tts)
+            if not engine_ok:
+                check(f"audio render ({args.tts})", True,
+                      "skipped (ffmpeg or voice engine unavailable)")
             else:
                 rc, out, err = _run_cli(["add-word", "--stdin", "--no-telegram",
                                          "--today", today],
                                         sandbox, stdin=json.dumps(
                                             {**SELFTEST_WORD, "lemma": "agua"}))
                 ogg = Path(sandbox) / "audio" / "agua.ogg"
-                check("audio render", rc == 0 and ogg.exists() and ogg.stat().st_size > 0,
-                      (err or out).strip()[:120])
+                check(f"audio render ({args.tts})",
+                      rc == 0 and ogg.exists() and ogg.stat().st_size > 0,
+                      (err or out).strip()[:160])
     finally:
         if args.keep:
             print(f"sandbox kept: {sandbox}")
@@ -559,7 +573,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("selftest", help="end-to-end check of the tutor (sandboxed)")
     s.add_argument("--lang", choices=["ru", "en", "uk"], default="en")
-    s.add_argument("--audio", action="store_true", help="also render audio (ffmpeg+say)")
+    s.add_argument("--tts", choices=["local", "system", "cloud"], default="local")
+    s.add_argument("--audio", action="store_true", help="also render audio")
     s.add_argument("--keep", action="store_true", help="keep the sandbox dir")
     s.set_defaults(func=cmd_selftest)
 

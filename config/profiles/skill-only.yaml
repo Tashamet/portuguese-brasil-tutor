@@ -2,7 +2,7 @@
 # Reviews are surfaced inside Claude via the /повтор command.
 deployment_profile: skill-only
 tts:
-  provider: system
+  provider: local
 telegram:
   enabled: false
 sync:
