@@ -10,16 +10,29 @@ spaced repetition** (day 2 / 7 / 30) and can push review reminders to
 📖 **Full documentation:** [MANUAL.md](MANUAL.md) · skill entry point:
 [SKILL.md](SKILL.md)
 
-## Quick start
+## Install (one line)
 
 ```bash
-pip install -r requirements.txt          # PyYAML, requests (+ ffmpeg on PATH)
-python3 cli/tutor.py setup --interface en --tts system --profile skill-only
+curl -fsSL https://raw.githubusercontent.com/Tashamet/portuguese-brasil-tutor/main/install.sh | bash
 ```
 
-Then open the skill in Claude and say something like *"teach me Brazilian
-Portuguese"*. On first run the tutor asks your interface language, runs a short
-diagnostic, agrees a learning plan, and starts.
+This clones the repo into your Claude skills directory
+(`~/.claude/skills/portuguese-brasil-tutor`), installs the Python deps and
+checks for `ffmpeg`. Then open **Claude Code**, start a new session and say
+*"teach me Brazilian Portuguese"* — the tutor asks your interface language,
+explains how it works, lets you choose with-bot or without-bot, and starts. No
+manual `setup` needed; the skill does first-run setup itself.
+
+<details>
+<summary>Manual install</summary>
+
+```bash
+git clone https://github.com/Tashamet/portuguese-brasil-tutor.git \
+  ~/.claude/skills/portuguese-brasil-tutor
+cd ~/.claude/skills/portuguese-brasil-tutor
+pip install -r requirements.txt          # PyYAML, requests (+ ffmpeg on PATH)
+```
+</details>
 
 ## How it works
 

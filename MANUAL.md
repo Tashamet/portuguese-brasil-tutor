@@ -336,6 +336,14 @@ Environment variables (never in the file): `TELEGRAM_BOT_TOKEN`,
 
 ## 11. Requirements & install
 
+One line (clones into `~/.claude/skills/`, installs deps, checks ffmpeg):
+
+```
+curl -fsSL https://raw.githubusercontent.com/Tashamet/portuguese-brasil-tutor/main/install.sh | bash
+```
+
+Manual:
+
 ```
 pip install -r requirements.txt     # PyYAML, requests
 ```
