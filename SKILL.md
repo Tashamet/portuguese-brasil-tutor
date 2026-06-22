@@ -51,7 +51,7 @@ Run `python3 cli/tutor.py context`.
   words) → this is a **first run**: go to ONBOARDING.
 - Otherwise → load the returned profile, progress, recent sessions and word
   lists. **Do not re-ask onboarding questions.** Continue where the learner left
-  off and proactively surface what is due today (`/повтор`).
+  off and proactively surface what is due today (`/review`).
 
 ---
 
@@ -77,7 +77,7 @@ Run `python3 cli/tutor.py context`.
 
 4. **Explain Telegram reminders** — tell the user plainly: *on review days (2, 7
    and 30 days after learning a word) a Telegram post will arrive with the word
-   card and its audio.* If they want it, walk them through `/настройка` (setup):
+   card and its audio.* If they want it, walk them through `/setup`:
    get a bot token from @BotFather, find their chat id via @userinfobot, set
    `TELEGRAM_BOT_TOKEN` in the environment, then
    `python3 cli/tutor.py setup --enable-telegram --telegram-chat <id> --profile local-notifier`.
@@ -87,7 +87,7 @@ Run `python3 cli/tutor.py context`.
 
 ## TEACHING A WORD (the core loop)
 
-When you introduce a new word (via `/слово` or naturally), produce a complete
+When you introduce a new word (via `/word` or naturally), produce a complete
 package and hand it to the toolkit:
 
 1. **Cultural card** — a rich Markdown card like the `então` example: meanings
@@ -117,20 +117,21 @@ with `[[words/...]]` links).
 
 ## COMMANDS
 
-Default aliases (the learner may rename/add via `/команды`, stored in
+All slash commands are **in English** regardless of the interface language.
+Default aliases (the learner may rename/add via `/commands`, stored in
 `data/journal/commands.md`; apply them on top of these):
 
 | Command | Action |
 |---|---|
-| `/слово` | New word of the day → card + 10 variations + audio (`add-word`) |
-| `/повтор` | Show today's reviews (`due-today`) and drill them aloud |
-| `/план` | Open/update `data/course/plan.md` |
-| `/курс` | Overview of the wiki (`data/course/index.md`) |
-| `/прогресс` | Progress (`stats` + `data/course/progress.md`) |
-| `/настройка` | Configure Telegram / language / TTS / profile (`setup`) |
-| `/команды` | Manage user hotkeys (`commands`) |
-| `/ситуация [место]` | Role-play a real situation (shop, doctor, Uber, bank, neighbour) |
-| `/как звучит [фраза]` | Pronunciation + reductions |
+| `/word` | New word of the day → card + 10 variations + audio (`add-word`) |
+| `/review` | Show today's reviews (`due-today`) and drill them aloud |
+| `/plan` | Open/update `data/course/plan.md` |
+| `/course` | Overview of the wiki (`data/course/index.md`) |
+| `/progress` | Progress (`stats` + `data/course/progress.md`) |
+| `/setup` | Configure Telegram / language / TTS / profile (`setup`) |
+| `/commands` | Manage user hotkeys (`commands`) |
+| `/situation [place]` | Role-play a real situation (shop, doctor, Uber, bank, neighbour) |
+| `/pronounce [phrase]` | Pronunciation + reductions |
 
 ---
 

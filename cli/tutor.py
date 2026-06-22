@@ -161,7 +161,7 @@ def cmd_send_due(args) -> None:
     on = _parse_date(args.on)
     chat_id = config.telegram_chat_id()
     if not config.telegram_enabled() or not chat_id:
-        raise SystemExit("Telegram is disabled or chat_id missing (see /настройка)")
+        raise SystemExit("Telegram is disabled or chat_id missing (see /setup)")
 
     rows = db.due_reviews(on)
     sent = 0

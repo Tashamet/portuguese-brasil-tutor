@@ -7,6 +7,21 @@ audio lessons** (one word × 10 contextual variations), schedules **Ebbinghaus
 spaced repetition** (day 2 / 7 / 30) and can push review reminders to
 **Telegram**.
 
+📖 **Full documentation:** [MANUAL.md](MANUAL.md) · skill entry point:
+[SKILL.md](SKILL.md)
+
+## Quick start
+
+```bash
+pip install -r requirements.txt          # PyYAML, requests (+ ffmpeg on PATH)
+python3 cli/tutor.py setup --interface en --tts system --profile skill-only
+```
+
+Then open the skill in Claude and say e.g. *"teach me Brazilian Portuguese"*.
+On first run the tutor asks your interface language, runs a short diagnostic,
+agrees a learning plan, and starts. All slash commands are in English (see
+below); all CLI subcommands are in English too.
+
 ## How it works
 
 - All teaching happens **inside Claude** (the skill). Claude authors each word:
@@ -32,7 +47,7 @@ spaced repetition** (day 2 / 7 / 30) and can push review reminders to
 ```
 python3 cli/tutor.py setup --interface ru --tts system --profile skill-only
 ```
-Use the skill in Claude. See due reviews with `/повтор`. No Telegram.
+Use the skill in Claude. See due reviews with `/review`. No Telegram.
 
 ### B — skill + local notifier (this Mac)
 ```
@@ -53,7 +68,20 @@ This copies the package, installs a venv + deps, and a daily cron that runs
 `git pull → tutor.py import → send-due`. The `remote-notifier.yaml` profile is
 safe to share (no secrets).
 
-## Key commands
+## Commands
+
+**In Claude (slash commands — always English):**
+
+| Command | What |
+|---|---|
+| `/word` | New word of the day → card + 10 variations + audio |
+| `/review` | Show and drill today's due reviews |
+| `/plan` · `/course` · `/progress` | Plan, wiki overview, progress |
+| `/setup` | Configure Telegram / language / TTS / profile |
+| `/commands` | Manage custom hotkeys |
+| `/situation [place]` · `/pronounce [phrase]` | Role-play · pronunciation |
+
+**CLI (`python3 cli/tutor.py <command>`):**
 
 | Command | What |
 |---|---|
@@ -64,6 +92,9 @@ safe to share (no secrets).
 | `send-due` | deliver due reviews to Telegram |
 | `export` / `import` | git sync bundle (`sync/words.ndjson`) |
 | `stats` | progress |
+
+See [MANUAL.md](MANUAL.md) for every command, the data model, audio, sync and
+troubleshooting.
 
 ## Data layout
 
