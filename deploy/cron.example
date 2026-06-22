@@ -1,0 +1,7 @@
+# Local notifier (profile B) — daily Telegram reminder at 09:00.
+# Install with:  crontab -e   then add the line below (adjust the path).
+#
+# 0 9 * * * cd /ABSOLUTE/PATH/portuguese-brasil-tutor && /usr/bin/python3 notifier/send_due.py >> data/notifier.log 2>&1
+#
+# Make sure TELEGRAM_BOT_TOKEN is available to cron, e.g. by sourcing a file:
+# 0 9 * * * . "$HOME/.tutor_env"; cd /ABSOLUTE/PATH/portuguese-brasil-tutor && python3 notifier/send_due.py >> data/notifier.log 2>&1

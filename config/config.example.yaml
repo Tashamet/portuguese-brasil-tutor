@@ -1,0 +1,39 @@
+# portuguese-brasil-tutor — main config.
+# Copy to config.yaml (or run `tutor.py setup`). Secrets live in env vars,
+# never here: TELEGRAM_BOT_TOKEN, ELEVENLABS_API_KEY, OPENAI_API_KEY.
+
+deployment_profile: skill-only   # skill-only | local-notifier | remote-notifier
+interface_language: ""           # ru | en | uk — asked on first run, then fixed
+review_intervals: [2, 7, 30]     # Ebbinghaus spaced repetition (days)
+daily_new_words: 1
+
+tts:
+  provider: system               # system (macOS say, default) | local (Piper) | cloud
+  system:
+    voice_pt: Luciana            # built-in macOS pt-BR voice
+    # voices: { pt: Luciana, ru: Milena, en: Samantha, uk: Lesya }
+  local:
+    piper_bin: piper
+    piper_voices:                # map language -> path to a Piper .onnx model
+      pt: /path/to/pt_BR-faber-medium.onnx
+      ru: /path/to/ru_RU-denis-medium.onnx
+      en: /path/to/en_US-amy-medium.onnx
+      uk: /path/to/uk_UA-lada-x_low.onnx
+  cloud:
+    engine: elevenlabs           # elevenlabs | openai
+    voice_pt: ""                 # ElevenLabs voice id, or OpenAI voice name (e.g. alloy)
+    # API key -> env ELEVENLABS_API_KEY / OPENAI_API_KEY
+
+telegram:
+  enabled: false                 # true for local-notifier / remote-notifier
+  chat_id: ""                    # your chat id (via @userinfobot)
+  send_time: "09:00"             # used by cron/launchd
+  # bot token -> env TELEGRAM_BOT_TOKEN
+
+sync:
+  mode: shared                   # shared (same disk) | git (repo for remote notifier)
+  git:
+    repo_url: ""                 # private repo; auth via deploy key
+
+deploy:
+  ssh_host: ""                   # user@host for remote-notifier; empty = local

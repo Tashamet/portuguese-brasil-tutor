@@ -1,0 +1,15 @@
+# Binary SQLite engine — never commit (git can't merge it; one writer rule).
+data/tutor.db
+data/tutor.db-*
+
+# Audio bytes travel via Telegram file_id, not git.
+data/audio/
+
+# Secrets and local config.
+config/config.yaml
+.venv/
+__pycache__/
+*.pyc
+data/notifier.log
+
+# Committed/synced (do NOT ignore): data/course/, data/journal/, sync/words.ndjson

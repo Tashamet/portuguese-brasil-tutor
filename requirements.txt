@@ -1,0 +1,5 @@
+PyYAML>=6.0
+requests>=2.31
+# System TTS uses macOS `say`; cloud TTS uses ElevenLabs/OpenAI HTTP APIs via
+# requests; local TTS uses the external `piper` binary. ffmpeg/ffprobe must be
+# on PATH for audio assembly. No aiogram/APScheduler — the notifier is cron-driven.

@@ -1,0 +1,9 @@
+# Profile A — skill + database only. Nothing runs in the background.
+# Reviews are surfaced inside Claude via the /повтор command.
+deployment_profile: skill-only
+tts:
+  provider: system
+telegram:
+  enabled: false
+sync:
+  mode: shared

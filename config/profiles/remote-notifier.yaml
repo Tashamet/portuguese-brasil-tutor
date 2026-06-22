@@ -1,0 +1,16 @@
+# Profile C — skill + remote notifier (24/7 on an SSH host).
+# Safe to share: no secrets, structure only. Authoring stays in Claude locally;
+# words travel to the host via a git bundle, audio via Telegram file_id.
+deployment_profile: remote-notifier
+tts:
+  provider: system          # or cloud, if you want best quality at authoring time
+telegram:
+  enabled: true
+  chat_id: ""               # set yours
+  send_time: "09:00"
+sync:
+  mode: git
+  git:
+    repo_url: ""            # your private repo
+deploy:
+  ssh_host: ""             # user@host

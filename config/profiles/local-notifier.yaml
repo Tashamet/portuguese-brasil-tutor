@@ -1,0 +1,11 @@
+# Profile B — skill + local notifier (cron/launchd on this Mac).
+# Telegram reminders arrive when the Mac is on. Same disk, no sync needed.
+deployment_profile: local-notifier
+tts:
+  provider: system
+telegram:
+  enabled: true
+  chat_id: ""        # set yours
+  send_time: "09:00"
+sync:
+  mode: shared
