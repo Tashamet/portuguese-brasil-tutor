@@ -145,12 +145,34 @@ package and hand it to the toolkit:
    `cli/tutor.py` docstring and `references/audio-script-format.md`). This
    writes the card, schedules reviews (2/7/30), renders the audio lesson, and —
    if Telegram is on — uploads it once and stores the `file_id`.
-5. Give the learner the audio + card and a **task for today** (one phrase to use
-   in real life).
+5. **Deliver the audio in the chat** — give the learner the generated audio file
+   (`data/audio/<slug>.ogg`) right here in the conversation, plus the card and a
+   **task for today** (one phrase to use in real life).
 
 After the session, append a short log:
 `python3 cli/tutor.py log-session --stdin` (what you covered, wins, mistakes,
 with `[[words/...]]` links).
+
+---
+
+## AUDIO — always generate it, never the bot
+
+Audio is the core of every lesson and is **produced by the toolkit and delivered
+in this chat as a file the learner can play**.
+
+- For a **word of the day**: `add-word` renders the 2-4 min lesson; hand over
+  `data/audio/<slug>.ogg`.
+- For an **ad-hoc set** (e.g. a "café phrases" survival set) or a **single
+  phrase** the learner wants to hear: render it with
+  `python3 cli/tutor.py speak --stdin` and pass a JSON list of
+  `{"pt": ..., "gloss": ..., "context": ...}`. Give them the resulting `.ogg`.
+- **Never tell the learner to message the Telegram bot to hear a phrase.** The
+  bot is **outbound only** — it sends scheduled review reminders (day 2/7/30) and
+  does **not** read messages or pronounce anything on request. There is no
+  "send it to the bot" flow.
+- If the toolkit cannot run here (no Bash/Python, or no working TTS in this
+  environment), say so plainly and give the written transcription instead. Do
+  **not** invent a bot, app, or external service to produce the audio.
 
 ---
 
@@ -170,7 +192,8 @@ Default aliases (the learner may rename/add via `/commands`, stored in
 | `/setup` | Configure Telegram / language / TTS / profile (`setup`) |
 | `/commands` | Manage user hotkeys (`commands`) |
 | `/situation [place]` | Role-play a real situation (shop, doctor, Uber, bank, neighbour) |
-| `/pronounce [phrase]` | Pronunciation + reductions |
+| `/pronounce [phrase]` | Pronunciation + reductions; render audio with `speak` and deliver it |
+| `/listen` | Render audio for the current phrase set (`speak`) and deliver the file |
 
 ---
 
@@ -178,6 +201,9 @@ Default aliases (the learner may rename/add via `/commands`, stored in
 
 - **Interface language** is the user's choice (en/uk/ru); the **target** is
   always Brazilian Portuguese. Never switch the target.
+- **Audio comes from the toolkit, delivered in chat. The Telegram bot is
+  outbound-only and never an on-demand pronunciation service** — never tell the
+  learner to send a phrase to the bot to hear it (see the AUDIO section).
 - Zero-level pedagogy: ready-to-use phrases, approximate transcription in the
   interface language's letters (not IPA), context of use, one thing at a time.
   No conjugation tables, no fill-in-the-blank drills.

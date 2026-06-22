@@ -48,3 +48,21 @@ def build_segments(word: Word, interface_lang: str) -> list[Segment]:
         segs.append(Segment(v.pt_sentence, "pt", pause_after=0.3))
 
     return segs
+
+
+def build_phrase_segments(phrases: list[dict], interface_lang: str) -> list[Segment]:
+    """Audio for an ad-hoc set of phrases (e.g. a survival set), not a saved word.
+
+    Each phrase: ``{"pt": ..., "gloss": ..., "context": ...}``. Rendered as
+    context -> pt natural -> pt slow -> gloss, so the learner can just listen.
+    """
+    lang = interface_lang if interface_lang in INTRO else "ru"
+    segs: list[Segment] = []
+    for p in phrases:
+        if p.get("context"):
+            segs.append(Segment(p["context"], lang, pause_after=0.3))
+        segs.append(Segment(p["pt"], "pt", pause_after=0.4))
+        segs.append(Segment(p["pt"], "pt", slow=True, pause_after=0.5))
+        if p.get("gloss"):
+            segs.append(Segment(p["gloss"], lang, pause_after=0.7))
+    return segs

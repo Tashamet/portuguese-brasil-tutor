@@ -136,6 +136,30 @@ def cmd_add_word(args) -> None:
                      ensure_ascii=False))
 
 
+def cmd_speak(args) -> None:
+    """Render audio for an ad-hoc phrase set (a survival set, a single phrase).
+
+    Input JSON: a list of phrases, or {"phrases": [...], "out": "name"}.
+    Each phrase: {"pt": ..., "gloss": ..., "context": ...}. Prints the audio path
+    so the skill can deliver the file to the learner in chat.
+    """
+    from core.content import build_phrase_segments
+    from core.tts.factory import get_adapter
+
+    db.init()
+    payload = _load_payload(args)
+    phrases = payload if isinstance(payload, list) else payload.get("phrases", [])
+    if not phrases:
+        raise SystemExit("no phrases (provide a list of {pt, gloss, context})")
+    name = (payload.get("out") if isinstance(payload, dict) else None) or "listen"
+    out = paths.AUDIO_DIR / f"{wiki.slugify(name)}.ogg"
+
+    segments = build_phrase_segments(phrases, _interface_lang())
+    dur = get_adapter().synthesize(segments, out)
+    print(json.dumps({"audio": str(out), "duration": round(dur, 1)},
+                     ensure_ascii=False))
+
+
 def cmd_gen_audio(args) -> None:
     db.init()
     word = db.get_word_by_slug(args.slug)
@@ -494,6 +518,10 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("gen-audio", help="regenerate audio for a slug")
     s.add_argument("slug"); s.add_argument("--no-telegram", action="store_true")
     s.set_defaults(func=cmd_gen_audio)
+
+    s = sub.add_parser("speak", help="render audio for an ad-hoc phrase set")
+    s.add_argument("--json"); s.add_argument("--stdin", action="store_true")
+    s.set_defaults(func=cmd_speak)
 
     s = sub.add_parser("due-today", help="list reviews due")
     s.add_argument("--on", help="date (YYYY-MM-DD), default today")

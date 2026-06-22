@@ -168,6 +168,7 @@ You can rename or add aliases via `/commands`; they're stored in
 | `setup [--interface ru\|en\|uk] [--tts system\|local\|cloud] [--daily-words N] [--profile ...] [--enable-telegram] [--telegram-chat ID]` | Write config, init DB + wiki scaffold |
 | `context` | Dump learner state for the skill (prints `first_run: true/false`) |
 | `add-word --stdin` (or `--json FILE`) `[--today DATE] [--no-audio] [--no-telegram]` | Add a word: card, variations, schedule, audio |
+| `speak --stdin` | Render audio for an ad-hoc phrase set (no DB entry) |
 | `gen-audio SLUG [--no-telegram]` | Re-render audio for an existing word |
 | `due-today [--on DATE] [--json-out]` | List reviews due (default today) |
 | `send-due [--on DATE]` | Deliver due reviews to Telegram |
@@ -224,7 +225,10 @@ voice. All providers go through the same assembly so pacing is identical.
 ## 7. Telegram reminders
 
 Telegram is **outbound only** — there is no interactive bot. Its single job: on
-a review day, deliver one post = the word card (text) + the voice audio.
+a review day, deliver one post = the word card (text) + the voice audio. It does
+**not** read incoming messages and is **not** an on-demand pronunciation
+service: to hear a phrase, the tutor renders audio with `speak`/`add-word` and
+delivers it in the chat — never by sending it to the bot.
 
 How audio reaches the post without re-uploading: when a word is added, the
 toolkit uploads its `.ogg` to Telegram **once** and stores the returned
