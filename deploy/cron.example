@@ -1,7 +1,11 @@
-# Local notifier (profile B) — daily Telegram reminder at 09:00.
-# Install with:  crontab -e   then add the line below (adjust the path).
+# Local notifier (local-notifier profile) — daily Telegram reminder.
+# The CODE lives in the skill dir; the student DATA lives under
+# ~/.portuguese-brasil-tutor/students/<profile>. Point cron at the code dir and
+# select the student with TUTOR_PROFILE.
 #
-# 0 9 * * * cd /ABSOLUTE/PATH/portuguese-brasil-tutor && /usr/bin/python3 notifier/send_due.py >> data/notifier.log 2>&1
+# Install with:  crontab -e   then add a line like (adjust path, profile, time):
 #
-# Make sure TELEGRAM_BOT_TOKEN is available to cron, e.g. by sourcing a file:
-# 0 9 * * * . "$HOME/.tutor_env"; cd /ABSOLUTE/PATH/portuguese-brasil-tutor && python3 notifier/send_due.py >> data/notifier.log 2>&1
+# 0 19 * * * . "$HOME/.tutor_env"; cd "$HOME/.claude/skills/portuguese-brasil-tutor"; TUTOR_PROFILE=nikolai /usr/bin/python3 notifier/send_due.py >> "$HOME/.portuguese-brasil-tutor/notifier.log" 2>&1
+#
+# Put TELEGRAM_BOT_TOKEN in ~/.tutor_env:   export TELEGRAM_BOT_TOKEN=123:abc
+# One line per student profile if you run several.

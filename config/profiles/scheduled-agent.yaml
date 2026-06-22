@@ -13,4 +13,4 @@ telegram:
 sync:
   mode: git
   git:
-    repo_url: ""           # YOUR PRIVATE repo (holds code + committed data)
+    repo_url: ""           # YOUR PRIVATE repo = this student's data dir, pushed

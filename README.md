@@ -112,14 +112,34 @@ and troubleshooting) is in [MANUAL.md](MANUAL.md). To sanity-check an install:
 
 The wiki is written in your chosen interface language (`en` / `ru` / `uk`).
 
-## Data layout
+## Where your data lives (and multiple students)
+
+Code and data are **separate**. The skill folder is code only; your learning data
+lives **outside it**, one self-contained folder per student:
 
 ```
-data/tutor.db          SQLite engine (gitignored)
-data/audio/*.ogg       generated lessons (gitignored; Telegram holds the bytes)
-data/course/           the wiki you read: index, plan, progress, words/, grammar/, themes/
-data/journal/          Claude's working memory: profile, sessions, commands
-sync/words.ndjson      text bundle for git-mode sync
+~/.portuguese-brasil-tutor/                    (TUTOR_HOME)
+  active_profile                               default student
+  students/
+    nikolai/                                   one student = one isolated world
+      config.yaml      where this student's settings live
+      tutor.db         SQLite engine (spaced-repetition state)
+      audio/*.ogg      generated lessons (Telegram holds the bytes long-term)
+      course/          the wiki you read: index, plan, progress, words/, grammar/, themes/
+      journal/         profile, sessions, commands
+      sync/words.ndjson  text bundle for git-mode sync
+    maria/             a second student — completely separate plan, pace, bot, schedule
 ```
+
+**Two people, one skill.** Each student is a profile with its own everything. The
+tutor picks the profile from your name on first run; switch with
+`TUTOR_PROFILE=<name>` or `tutor.py use <name>`, and list them with
+`tutor.py profiles`.
+
+**Read your course in [Obsidian](https://obsidian.md).** The course is plain
+Markdown cross-linked with `[[wiki-links]]` — open a student's folder (e.g.
+`~/.portuguese-brasil-tutor/students/nikolai`) as an Obsidian vault to browse and
+graph your words, themes, plan and progress. Any Markdown editor works; Obsidian
+just renders the links and backlinks nicely.
 
 Secrets live only in environment variables, never in config files.

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Local notifier (profile B) for macOS. Edit the two ABSOLUTE paths and the
-     hour/minute, then:
+<!-- Local notifier for macOS. Point WorkingDirectory at the skill CODE dir
+     (~/.claude/skills/portuguese-brasil-tutor), set TUTOR_PROFILE to the
+     student, edit the hour/minute, then:
        cp com.tutor.notifier.plist ~/Library/LaunchAgents/
        launchctl load ~/Library/LaunchAgents/com.tutor.notifier.plist
+     Student DATA lives under ~/.portuguese-brasil-tutor/students/<profile>.
      Provide TELEGRAM_BOT_TOKEN via the EnvironmentVariables block below. -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -13,23 +15,25 @@
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/python3</string>
-        <string>/ABSOLUTE/PATH/portuguese-brasil-tutor/notifier/send_due.py</string>
+        <string>/ABSOLUTE/PATH/.claude/skills/portuguese-brasil-tutor/notifier/send_due.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/ABSOLUTE/PATH/portuguese-brasil-tutor</string>
+    <string>/ABSOLUTE/PATH/.claude/skills/portuguese-brasil-tutor</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>TELEGRAM_BOT_TOKEN</key>
         <string>PUT-YOUR-BOT-TOKEN-HERE</string>
+        <key>TUTOR_PROFILE</key>
+        <string>default</string>
     </dict>
     <key>StartCalendarInterval</key>
     <dict>
-        <key>Hour</key><integer>9</integer>
+        <key>Hour</key><integer>19</integer>
         <key>Minute</key><integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/ABSOLUTE/PATH/portuguese-brasil-tutor/data/notifier.log</string>
+    <string>/ABSOLUTE/PATH/.portuguese-brasil-tutor/notifier.log</string>
     <key>StandardErrorPath</key>
-    <string>/ABSOLUTE/PATH/portuguese-brasil-tutor/data/notifier.log</string>
+    <string>/ABSOLUTE/PATH/.portuguese-brasil-tutor/notifier.log</string>
 </dict>
 </plist>

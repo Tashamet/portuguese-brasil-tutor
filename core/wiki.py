@@ -69,11 +69,23 @@ def t(key: str, interface_language: str | None) -> str:
     return entry.get(_lang(interface_language)) or entry.get("en") or key
 
 
+# Cyrillic (ru + uk) -> Latin, so interface-language topics get usable slugs.
+_TRANSLIT = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "ґ": "g", "д": "d", "е": "e", "ё": "e",
+    "є": "ye", "ж": "zh", "з": "z", "и": "i", "і": "i", "ї": "yi", "й": "y",
+    "к": "k", "л": "l", "м": "m", "н": "n", "о": "o", "п": "p", "р": "r", "с": "s",
+    "т": "t", "у": "u", "ф": "f", "х": "h", "ц": "ts", "ч": "ch", "ш": "sh",
+    "щ": "shch", "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+}
+
+
 def slugify(text: str) -> str:
-    """ASCII, lowercase, hyphenated slug. ``Então`` -> ``entao``."""
-    norm = unicodedata.normalize("NFKD", text)
+    """ASCII, lowercase, hyphenated slug. ``Então`` -> ``entao``;
+    ``Кафе и пекарня`` -> ``kafe-i-pekarnya``."""
+    lowered = (text or "").lower()
+    translit = "".join(_TRANSLIT.get(ch, ch) for ch in lowered)
+    norm = unicodedata.normalize("NFKD", translit)
     ascii_text = norm.encode("ascii", "ignore").decode("ascii")
-    ascii_text = ascii_text.lower().strip()
     ascii_text = re.sub(r"[^a-z0-9]+", "-", ascii_text)
     return ascii_text.strip("-") or "word"
 

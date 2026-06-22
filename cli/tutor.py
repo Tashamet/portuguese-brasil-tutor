@@ -98,7 +98,11 @@ def cmd_setup(args) -> None:
     if args.name:
         db.set_setting("student_name", args.name)
     wiki.ensure_scaffold(db.get_setting("interface_language"))
-    print(f"Config written to {paths.CONFIG_PATH}")
+    # Remember this profile as the default for future (non-prefixed) sessions.
+    paths.set_active_profile(paths.active_profile())
+    print(f"Profile: {paths.active_profile()}")
+    print(f"Student data dir: {paths.DATA}")
+    print(f"Config written to: {paths.CONFIG_PATH}")
     print("Telegram setup: get a bot token from @BotFather, set it as the env var")
     print("  TELEGRAM_BOT_TOKEN, and your chat_id via @userinfobot.")
 
@@ -229,8 +233,9 @@ def cmd_notify(args) -> None:
     """
     db.init()
     if config.sync_mode() == "git" and not args.no_pull:
-        if (paths.PKG_ROOT / ".git").exists():
-            proc = subprocess.run(["git", "-C", str(paths.PKG_ROOT), "pull", "--ff-only"],
+        # In git mode the STUDENT DATA dir is the synced repo (not the code).
+        if (paths.DATA / ".git").exists():
+            proc = subprocess.run(["git", "-C", str(paths.DATA), "pull", "--ff-only"],
                                   capture_output=True, text=True)
             if proc.returncode != 0:
                 print(f"git pull failed: {proc.stderr.strip()}", file=sys.stderr)
@@ -304,6 +309,24 @@ def cmd_stats(args) -> None:
     print(json.dumps(db.stats(), ensure_ascii=False, indent=2))
 
 
+def cmd_profiles(args) -> None:
+    """List student profiles and where their data lives."""
+    print(json.dumps({
+        "home": str(paths.TUTOR_HOME),
+        "active": paths.active_profile(),
+        "active_dir": str(paths.DATA),
+        "profiles": paths.list_profiles(),
+    }, ensure_ascii=False, indent=2))
+
+
+def cmd_use(args) -> None:
+    """Set the default student profile for future sessions."""
+    prof = paths.set_active_profile(args.name)
+    print(f"active profile: {prof} -> {paths.STUDENTS_DIR / prof}")
+    print("Tip: prefix a command with TUTOR_PROFILE=<name> to target a profile "
+          "for one call without changing the default.")
+
+
 def cmd_set_plan(args) -> None:
     """Store the multi-lesson plan and render course/plan.md.
 
@@ -317,14 +340,25 @@ def cmd_set_plan(args) -> None:
         raise SystemExit("no lessons (provide a list of {topic, notes})")
     db.set_lessons(lessons)
     lang = _interface_lang()
+    paths.ensure_dirs()
     lines = [f"# {wiki.t('learning_plan', lang)}", ""]
     for i, le in enumerate(lessons, 1):
+        slug = wiki.slugify(le["topic"])
         notes = f" — {le['notes']}" if le.get("notes") else ""
-        lines.append(f"{i}. {le['topic']}{notes}")
+        lines.append(f"{i}. [[themes/{slug}|{le['topic']}]]{notes}")
+        # Front-load a theme stub so the wiki shows the whole arc, linked, from
+        # day one. Don't clobber a theme the tutor already filled in.
+        theme = paths.THEMES_DIR / f"{slug}.md"
+        if not theme.exists():
+            theme.write_text(
+                f"# {le['topic']}\n\n_{wiki.t('learning_plan', lang)} · #{i}_\n\n"
+                f"{le.get('notes', '')}\n\n## {wiki.t('words', lang)}\n\n_—_\n\n"
+                f"{wiki.t('related', lang)}: [[plan]], [[index]]\n",
+                encoding="utf-8")
     lines += ["", f"{wiki.t('related', lang)}: [[index]], [[progress]]"]
-    paths.COURSE_PLAN.parent.mkdir(parents=True, exist_ok=True)
     paths.COURSE_PLAN.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"stored {len(lessons)} lessons → {paths.COURSE_PLAN}")
+    wiki.rebuild_index(lang)
+    print(f"stored {len(lessons)} lessons; themes scaffolded → {paths.COURSE_PLAN}")
 
 
 def cmd_lesson_done(args) -> None:
@@ -683,6 +717,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("stats", help="progress stats (json)")
     s.set_defaults(func=cmd_stats)
+
+    s = sub.add_parser("profiles", help="list student profiles and data locations")
+    s.set_defaults(func=cmd_profiles)
+
+    s = sub.add_parser("use", help="set the default student profile")
+    s.add_argument("name"); s.set_defaults(func=cmd_use)
 
     s = sub.add_parser("commands", help="manage user hotkeys")
     s.add_argument("action", choices=["list", "add", "remove"], nargs="?", default="list")

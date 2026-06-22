@@ -28,13 +28,27 @@ This skill is backed by a small toolkit (`cli/tutor.py`) that persists words,
 renders audio, schedules reviews and maintains a Markdown wiki-course. **You
 generate the content; the toolkit stores and delivers it.**
 
-## Working directory & tool
+## Working directory, tool, and data location
 
-All commands run from the skill package root. Begin a session by locating it
-and using the CLI:
+Run the CLI from the skill code directory (where this `SKILL.md` lives):
 
 ```
 python3 cli/tutor.py <command> ...
+```
+
+**Code vs data — keep them separate.** This skill folder is *code only*. Every
+student's data (config, database, wiki, plan, schedule, bot) lives **outside**
+the skill, under `~/.portuguese-brasil-tutor/students/<profile>/`. Never write
+learner data into the skill folder.
+
+**Pick the student profile and stick to it.** Several people can share one skill
+with fully separate data (e.g. a couple). The active student is chosen by the
+`TUTOR_PROFILE` environment variable. **Once you know which student this session
+is for, prefix every `tutor.py` call with `TUTOR_PROFILE=<slug>`** so all data
+lands in the right profile, e.g.:
+
+```
+TUTOR_PROFILE=nikolai python3 cli/tutor.py context
 ```
 
 Read `references/teaching-method.md` for the full pedagogy before teaching, and
@@ -43,19 +57,20 @@ language is known.
 
 ---
 
-## STEP 0 — Resolve session state
+## STEP 0 — Choose the student, then resolve state
 
-Run `python3 cli/tutor.py context`.
-
-- If it reports an **empty/uninitialized** profile (no interface language, no
-  words) → this is a **first run**: go to ONBOARDING.
-- Otherwise → load the returned profile, progress, recent sessions and word
-  lists. **Do not re-ask onboarding questions.** **Greet the learner by name**
-  (`student_name` from context) and follow the greeting rule: if
-  `due_reviews_today > 0`, offer to review first; else if `next_lesson` is set,
-  announce today's topic ("Сегодня по плану: …"); else just start. Example:
-  *"Привет, {name}! Сегодня у тебя занятие — тема «…». Давай сначала повторим N
-  слов, потом продолжим."*
+1. Run `python3 cli/tutor.py profiles` to list existing students.
+   - **No profiles** → first ever run: go to ONBOARDING (it creates the profile).
+   - **One profile** → use it (set `TUTOR_PROFILE=<that>` for the session).
+   - **Several profiles** → ask **"Who's studying — {names}?"** and set
+     `TUTOR_PROFILE=<slug>` for every command this session.
+2. Then run `TUTOR_PROFILE=<slug> python3 cli/tutor.py context`.
+   - `first_run: true` → that profile isn't set up yet → ONBOARDING.
+   - Otherwise → load the returned profile, progress, recent sessions and words.
+     **Do not re-ask onboarding questions.** **Greet by name** (`student_name`)
+     and follow the rule: if `due_reviews_today > 0`, offer to review first; else
+     if `next_lesson` is set, announce today's topic; else just start. Example:
+     *"Привет, {name}! Сегодня по плану «…». Давай сначала повторим N слов."*
 
 ---
 
@@ -70,7 +85,9 @@ language, and wait for answers. Walk through these steps in order:
 "First — which language should I teach you in: **English**, **Українська**, or
 **Русский**?" Wait for the answer, then load `references/interface/<lang>.md` and
 conduct everything from here in that language. Then ask **"What should I call
-you?"** (the name is used to greet them each session). Do **not** run setup yet.
+you?"**. From the name, derive a profile slug (lowercase ascii, e.g. "Николай" →
+`nikolai`) and **use `TUTOR_PROFILE=<slug>` on every command from now on** — this
+becomes their private data folder. Do **not** run setup yet.
 
 ### 2. Explain what this is and how it will work
 In the chosen language, give a short, friendly overview (your own words, not a
@@ -121,19 +138,25 @@ the due day, when you're not in Claude*:
   the macOS built-in voice, or a higher-quality **cloud** voice (needs an API
   key). Mention briefly; default to Piper.
 
-### 5. Short survival diagnostic
-Ask in the interface language:
-- How long have you been in Brazil, and where do you live (city/state)?
-- Which situations stress you most right now (shop, transport, work,
-  neighbours, doctor)?
-- What can you already say in Portuguese, even 2-3 words?
-Record the answers into `data/journal/profile.md`.
+### 5. Diagnostic — understand the learner (ask in the interface language)
+Ask these one at a time; they shape the whole plan. Don't dump them as a list.
+- **Goal / motivation** — why Portuguese now? (daily errands, work, family,
+  neighbours, feeling less anxious in public). This sets the priorities.
+- **Time in Brazil + city/state** — drives the regional dialect notes.
+- **Pain points** — which situations stress you most right now (shop, transport,
+  doctor, work, phone)? Where do you avoid speaking?
+- **Current level** — what can you already say, even 2-3 words?
+- **When you have time** — confirm the cadence and time from step 4 against
+  their real routine (mornings before work? evenings?).
+Record the answers in their `journal/profile.md` (edit the file directly).
 
 ### 6. Apply the configuration (tell the user what you're doing)
-Use the voice from step 4: `--tts local` (Piper, default), `--tts system`
-(macOS), or `--tts cloud`. Always include the personalisation from steps 1 & 4:
-`--name "<name>" --daily-words <n> --study-time <HH:MM> --study-days <daily|mon,wed,fri>`
-(shown abbreviated as `<personal>` below).
+Prefix every command with `TUTOR_PROFILE=<slug>`. Use the voice from step 4
+(`--tts local` default | `system` | `cloud`) and include the personalisation
+from steps 1 & 4: `--name "<name>" --daily-words <n> --study-time <HH:MM>
+--study-days <daily|mon,wed,fri>` (shown abbreviated as `<personal>` below).
+After setup, tell them in one line **where their data lives** (the
+`Student data dir` it prints — under `~/.portuguese-brasil-tutor/students/...`).
 
 - **Without bot:**
   `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --profile skill-only`
@@ -154,23 +177,23 @@ Use the voice from step 4: `--tts local` (Piper, default), `--tts system`
     `python3 cli/tutor.py deploy --ssh user@host --send-time HH:MM`.
   - **Scheduled Claude agent (no server):**
     `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --enable-telegram --telegram-chat <id> --profile scheduled-agent`
-    Then help them: (1) push their data to a **private** git repo (`sync.mode:
-    git`, commit `data/course`, `data/journal`, `sync/words.ndjson`); (2) create a
-    daily Claude routine (use the `schedule` skill) that runs
-    `deploy/agent-notify.sh` with `TUTOR_SYNC_REPO` and `TELEGRAM_BOT_TOKEN` set.
-    Be honest about the token: it must live in the routine's environment; use a
-    dedicated bot.
-  In all cases offer to verify now with `python3 cli/tutor.py test-telegram`.
-After running setup, say in one line what happened.
+    Then help them: (1) make **their student data dir** (the printed
+    `~/.portuguese-brasil-tutor/students/<slug>`) a **private** git repo and push
+    it (`sync.mode: git`); (2) create a daily Claude routine (use the `schedule`
+    skill) running `deploy/agent-notify.sh` with `TUTOR_SYNC_REPO` (that private
+    repo) and `TELEGRAM_BOT_TOKEN` set. The token must live in the routine's
+    environment; use a dedicated bot.
+  In all cases offer to verify now with `TUTOR_PROFILE=<slug> python3 cli/tutor.py test-telegram`.
 
-### 7. Build a full plan, agree it, then start
+### 7. Build a full plan, populate the wiki, agree it, then start
 Design a **complete multi-lesson plan — several lessons ahead** (e.g. 6-10),
 each with a clear **theme**, ordered from the most painful survival zone outward
 (market/café → transport → numbers & money → food → small talk → doctor → bank…),
-adapted to the diagnostic. Store it (this also renders `data/course/plan.md`):
+adapted to the diagnostic. Store it (renders `plan.md` and scaffolds one linked
+`themes/<slug>.md` per lesson):
 
 ```
-python3 cli/tutor.py set-plan --stdin <<'JSON'
+TUTOR_PROFILE=<slug> python3 cli/tutor.py set-plan --stdin <<'JSON'
 {"lessons":[
   {"topic":"Café & bakery survival","notes":"order, pay, be polite"},
   {"topic":"Transport: Uber & bus","notes":"address, price"},
@@ -179,9 +202,21 @@ python3 cli/tutor.py set-plan --stdin <<'JSON'
 JSON
 ```
 
+Then **fill each theme file** (`course/themes/<slug>.md`) with its planned
+vocabulary/phrase outline, so the whole arc is visible and cross-linked from day
+one — the learner can open the wiki and see every upcoming topic and what it
+covers. (Outline only here; full word entries with audio + reviews are created
+as each lesson is taught.)
+
 **Show the plan and get a yes** (adjust on request). Then give the **first lesson
 right away** so the learner sees the whole loop end to end. As lessons are taught,
 the next planned topic is what the greeting and lesson reminder announce.
+
+> **Write everything to the wiki, continuously.** Every word, phrase, correction,
+> exercise and session belongs in the course files — new words via `add-word`,
+> theme/grammar notes by editing the markdown, session recaps via `log-session`,
+> finished lessons via `lesson-done`. The wiki is the durable record; nothing
+> important should live only in the chat.
 
 > Throughout: explain, don't hide. After any toolkit command, tell the learner
 > in one line what it did ("Saved — it's in your course under `words/…`").

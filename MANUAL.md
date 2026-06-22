@@ -54,7 +54,27 @@ delivers due reviews.
 
 ## 3. Data model
 
-### SQLite — `data/tutor.db` (the spaced-repetition engine)
+### Where data lives — code vs student profiles
+
+The skill folder is **code only**. Each student's data lives **outside** it, in
+its own isolated folder so several learners can share one skill:
+
+```
+~/.portuguese-brasil-tutor/students/<profile>/
+    config.yaml  tutor.db  audio/  course/  journal/  sync/
+```
+
+The active profile comes from `TUTOR_PROFILE` (or the `active_profile` pointer,
+default `default`). `TUTOR_DATA_DIR` overrides with an explicit path (used by
+sync checkouts and the selftest). Manage profiles with `tutor.py profiles`
+(list) and `tutor.py use <name>` (set default). The paths below are relative to
+a profile's data dir.
+
+Open a profile folder as an **[Obsidian](https://obsidian.md) vault** to browse
+the course — the `[[wiki-links]]` render as a navigable graph.
+
+
+### SQLite — `tutor.db` (the spaced-repetition engine)
 
 Queryable, schedule-critical state. This is what the notifier reads.
 
@@ -194,6 +214,8 @@ You can rename or add aliases via `/commands`; they're stored in
 | `send-due [--on DATE]` | Deliver due reviews to Telegram |
 | `context` / `log-session --stdin\|--file\|--text` | Read / append session memory |
 | `stats` | Progress JSON |
+| `profiles` | List student profiles + data locations |
+| `use NAME` | Set the default student profile |
 | `commands [list\|add ALIAS TARGET\|remove ALIAS]` | Manage hotkeys |
 | `export [--out PATH]` / `import [--file F]` | Git-sync text bundle |
 | `deploy --ssh user@host [--send-time HH:MM]` | Provision a remote notifier |
