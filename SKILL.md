@@ -38,7 +38,7 @@ python3 cli/tutor.py <command> ...
 
 **Code vs data — keep them separate.** This skill folder is *code only*. Every
 student's data (config, database, wiki, plan, schedule, bot) lives **outside**
-the skill, under `~/.portuguese-brasil-tutor/students/<profile>/`. Never write
+the skill, in the chosen course folder, `<course-folder>/students/<profile>/`. Never write
 learner data into the skill folder.
 
 **Pick the student profile and stick to it.** Several people can share one skill
@@ -81,13 +81,19 @@ silently.** The learner should understand what this is and what each choice
 means before anything is configured. Ask the questions one at a time, in plain
 language, and wait for answers. Walk through these steps in order:
 
-### 1. Ask the interface language, then the student's name
+### 1. Ask the interface language, the name, and where to keep the course
 "First — which language should I teach you in: **English**, **Українська**, or
 **Русский**?" Wait for the answer, then load `references/interface/<lang>.md` and
 conduct everything from here in that language. Then ask **"What should I call
 you?"**. From the name, derive a profile slug (lowercase ascii, e.g. "Николай" →
-`nikolai`) and **use `TUTOR_PROFILE=<slug>` on every command from now on** — this
-becomes their private data folder. Do **not** run setup yet.
+`nikolai`) and **use `TUTOR_PROFILE=<slug>` on every command from now on**.
+
+**Only on the very first setup of this machine** (when `tutor.py profiles` showed
+no home yet), ask **where to keep the course folder** — a visible place they can
+open in Finder/Obsidian. Offer sensible options (e.g. `~/Documents/PortugueseTutor`
+or `~/PortugueseTutor`) and set it:
+`python3 cli/tutor.py set-home "<path>"`. For later students the location already
+exists — don't re-ask. Do **not** run setup yet.
 
 ### 2. Explain what this is and how it will work
 In the chosen language, give a short, friendly overview (your own words, not a
@@ -160,7 +166,7 @@ If they chose the **cloud** voice, ask for their key and add
 (or they can paste it into `tts.cloud.api_key` in their config, or use the
 `ELEVENLABS_API_KEY` / `OPENAI_API_KEY` env var).
 After setup, tell them in one line **where their data lives** (the
-`Student data dir` it prints — under `~/.portuguese-brasil-tutor/students/...`).
+`Student data dir` it prints — under the course folder).
 
 - **Without bot:**
   `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --profile skill-only`
@@ -184,7 +190,7 @@ After setup, tell them in one line **where their data lives** (the
   - **Scheduled Claude agent (no server):**
     `python3 cli/tutor.py setup --interface <lang> --tts local <personal> --enable-telegram --telegram-chat <id> --profile scheduled-agent`
     Then help them: (1) make **their student data dir** (the printed
-    `~/.portuguese-brasil-tutor/students/<slug>`) a **private** git repo and push
+    `<course-folder>/students/<slug>`) a **private** git repo and push
     it (`sync.mode: git`); (2) create a daily Claude routine (use the `schedule`
     skill) running `deploy/agent-notify.sh` with `TUTOR_SYNC_REPO` (that private
     repo) and `TELEGRAM_BOT_TOKEN` set. The token must live in the routine's

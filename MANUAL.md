@@ -56,19 +56,23 @@ delivers due reviews.
 
 ### Where data lives — code vs student profiles
 
-The skill folder is **code only**. Each student's data lives **outside** it, in
-its own isolated folder so several learners can share one skill:
+The skill folder is **code only**. Each student's data lives **outside** it, in a
+**visible course folder you choose** (asked on first run, e.g.
+`~/Documents/PortugueseTutor`), one isolated folder per student:
 
 ```
-~/.portuguese-brasil-tutor/students/<profile>/
+<course folder>/students/<profile>/
     config.yaml  tutor.db  audio/  course/  journal/  sync/
 ```
 
-The active profile comes from `TUTOR_PROFILE` (or the `active_profile` pointer,
-default `default`). `TUTOR_DATA_DIR` overrides with an explicit path (used by
-sync checkouts and the selftest). Manage profiles with `tutor.py profiles`
-(list) and `tutor.py use <name>` (set default). The paths below are relative to
-a profile's data dir.
+The course folder location resolves from `TUTOR_HOME` (env, wins) → a one-line
+pointer at `~/.config/portuguese-brasil-tutor/home` (written by `set-home`) →
+default `~/PortugueseTutor`. Choose/move it with
+`tutor.py set-home "<path>" [--migrate]`. The active student comes from
+`TUTOR_PROFILE` (or the `active_profile` pointer); `TUTOR_DATA_DIR` overrides
+with an explicit path (sync checkouts, selftest). Manage with `tutor.py profiles`
+(list) and `tutor.py use <name>` (set default). Paths below are relative to a
+profile's data dir.
 
 Open a profile folder as an **[Obsidian](https://obsidian.md) vault** to browse
 the course — the `[[wiki-links]]` render as a navigable graph.
@@ -216,6 +220,7 @@ You can rename or add aliases via `/commands`; they're stored in
 | `stats` | Progress JSON |
 | `profiles` | List student profiles + data locations |
 | `use NAME` | Set the default student profile |
+| `set-home PATH [--migrate]` | Choose/move the course folder location |
 | `commands [list\|add ALIAS TARGET\|remove ALIAS]` | Manage hotkeys |
 | `export [--out PATH]` / `import [--file F]` | Git-sync text bundle |
 | `deploy --ssh user@host [--send-time HH:MM]` | Provision a remote notifier |

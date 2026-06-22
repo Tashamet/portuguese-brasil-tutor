@@ -333,6 +333,30 @@ def cmd_use(args) -> None:
           "for one call without changing the default.")
 
 
+def cmd_set_home(args) -> None:
+    """Choose where the course folder lives; optionally move existing data there."""
+    new = Path(args.path).expanduser().resolve()
+    old = paths.TUTOR_HOME.resolve()
+    new.mkdir(parents=True, exist_ok=True)
+    if args.migrate and old != new and old.exists() and any(old.iterdir()):
+        for item in old.iterdir():
+            target = new / item.name
+            if target.exists():
+                print(f"skip (exists): {target}")
+                continue
+            shutil.move(str(item), str(target))
+        print(f"moved existing data: {old} -> {new}")
+        # Leave a breadcrumb so a stale hidden folder isn't confusing.
+        try:
+            if not any(old.iterdir()):
+                old.rmdir()
+        except OSError:
+            pass
+    paths.set_tutor_home(new)
+    print(f"Course folder is now: {new}")
+    print("Open it in Finder or as an Obsidian vault to browse your course.")
+
+
 def cmd_set_plan(args) -> None:
     """Store the multi-lesson plan and render course/plan.md.
 
@@ -734,6 +758,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("use", help="set the default student profile")
     s.add_argument("name"); s.set_defaults(func=cmd_use)
+
+    s = sub.add_parser("set-home", help="choose where the course folder lives")
+    s.add_argument("path", help="e.g. ~/Documents/PortugueseTutor")
+    s.add_argument("--migrate", action="store_true", help="move existing data there")
+    s.set_defaults(func=cmd_set_home)
 
     s = sub.add_parser("commands", help="manage user hotkeys")
     s.add_argument("action", choices=["list", "add", "remove"], nargs="?", default="list")

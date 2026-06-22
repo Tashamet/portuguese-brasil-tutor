@@ -31,8 +31,34 @@ from pathlib import Path
 # Package root = parent of the ``core`` directory (the skill code).
 PKG_ROOT = Path(__file__).resolve().parents[1]
 
+# A tiny pointer (not data) that remembers where the user chose to keep their
+# course folder, so it survives across sessions. The DATA itself lives in a
+# visible folder of the user's choosing (asked during onboarding).
+HOME_POINTER = Path("~/.config/portuguese-brasil-tutor/home").expanduser()
+DEFAULT_HOME = Path("~/PortugueseTutor").expanduser()
+
+
+def _tutor_home() -> Path:
+    env = os.environ.get("TUTOR_HOME")
+    if env:
+        return Path(env).expanduser()
+    if HOME_POINTER.exists():
+        chosen = HOME_POINTER.read_text(encoding="utf-8").strip()
+        if chosen:
+            return Path(chosen).expanduser()
+    return DEFAULT_HOME
+
+
+def set_tutor_home(path: str | Path) -> Path:
+    """Remember the user's chosen course-folder location for future sessions."""
+    p = Path(path).expanduser()
+    HOME_POINTER.parent.mkdir(parents=True, exist_ok=True)
+    HOME_POINTER.write_text(str(p) + "\n", encoding="utf-8")
+    return p
+
+
 # Where all student data lives (never inside the skill code).
-TUTOR_HOME = Path(os.environ.get("TUTOR_HOME", "~/.portuguese-brasil-tutor")).expanduser()
+TUTOR_HOME = _tutor_home()
 STUDENTS_DIR = TUTOR_HOME / "students"
 ACTIVE_POINTER = TUTOR_HOME / "active_profile"
 
