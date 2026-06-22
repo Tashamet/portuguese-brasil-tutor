@@ -14,8 +14,9 @@ from pathlib import Path
 from . import db, paths
 
 
-def export_bundle() -> Path:
+def export_bundle(out_path: Path | None = None) -> Path:
     paths.ensure_dirs()
+    out_path = out_path or paths.SYNC_BUNDLE
     lines: list[str] = []
     with db.connect() as conn:
         words = conn.execute("SELECT * FROM words ORDER BY created_at").fetchall()
@@ -51,9 +52,9 @@ def export_bundle() -> Path:
                 "audio": dict(audio) if audio else None,
             }
             lines.append(json.dumps(record, ensure_ascii=False))
-    paths.SYNC_BUNDLE.write_text("\n".join(lines) + ("\n" if lines else ""),
-                                 encoding="utf-8")
-    return paths.SYNC_BUNDLE
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    return out_path
 
 
 def import_bundle(path: Path | None = None) -> int:

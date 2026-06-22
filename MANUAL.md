@@ -90,6 +90,11 @@ sessions/YYYY-MM-DD.md  session logs (link the words covered)
 commands.md             your custom hotkeys (alias → action)
 ```
 
+The whole wiki is written in the chosen interface language: section titles and
+field labels (index, plan, progress, profile, session headers) are localized for
+`en` / `ru` / `uk`, and Claude authors the word cards and session notes in that
+language too.
+
 **Why split SQLite + Markdown?** The Ebbinghaus engine needs indexed
 "what's due today" queries and a stable schema (SQLite). The course and journal
 are narrative, read by humans and by Claude, edited by hand — Markdown is native
@@ -164,8 +169,11 @@ You can rename or add aliases via `/commands`; they're stored in
 | `context` / `log-session --stdin\|--file\|--text` | Read / append session memory |
 | `stats` | Progress JSON |
 | `commands [list\|add ALIAS TARGET\|remove ALIAS]` | Manage hotkeys |
-| `export` / `import [--file F]` | Git-sync text bundle |
+| `export [--out PATH]` / `import [--file F]` | Git-sync text bundle |
 | `deploy --ssh user@host [--send-time HH:MM]` | Provision a remote notifier |
+| `selftest [--lang en\|ru\|uk] [--audio] [--keep]` | End-to-end self-check (sandboxed) |
+| `check-links` | Report broken `[[wiki-links]]` |
+| `test-telegram [--chat ID] [--voice]` | Send a test message/voice to Telegram |
 
 ### `add-word` payload (JSON)
 
@@ -325,14 +333,53 @@ pip install -r requirements.txt     # PyYAML, requests
 Plus on PATH: `ffmpeg` + `ffprobe` (audio assembly). `system` TTS needs macOS;
 `local` needs the `piper` binary + voice models; `cloud` needs an API key.
 
-Run the tests:
+---
+
+## 12. Testing & diagnostics
+
+Two commands let you confirm the tutor and the bot work without going through a
+full Claude session.
+
+### `selftest` — verify the tutor
+
+Runs the whole pipeline in a throwaway sandbox (a temp data dir; nothing real is
+touched): scheduler math, `setup`, `add-word` with a 10-variation word, schedule
+on day 2, stats, a localized wiki scaffold, an export/import round-trip, and the
+link checker. Add `--audio` to also render a real audio lesson.
+
 ```
-python3 tests/test_scheduler.py
+python3 cli/tutor.py selftest                 # English, no audio
+python3 cli/tutor.py selftest --lang ru        # check the Russian wiki labels
+python3 cli/tutor.py selftest --lang uk --audio  # also render audio (needs ffmpeg+say)
+python3 cli/tutor.py selftest --keep           # keep the sandbox dir to inspect
 ```
+
+Each step prints `[PASS]`/`[FAIL]` and the command exits non-zero if anything
+fails — suitable for CI.
+
+```
+python3 tests/test_scheduler.py                # unit tests for the scheduler
+python3 cli/tutor.py check-links               # broken [[wiki-links]] in your course
+```
+
+### `test-telegram` — verify the bot
+
+Sends a real message to your configured chat (and a sample voice with
+`--voice`). Requires `TELEGRAM_BOT_TOKEN` in the environment and a `chat_id`.
+
+```
+export TELEGRAM_BOT_TOKEN=...
+python3 cli/tutor.py test-telegram                       # text only
+python3 cli/tutor.py test-telegram --voice               # text + a sample lesson
+python3 cli/tutor.py test-telegram --chat 123456 --voice # override chat id
+```
+
+To rehearse a reminder exactly as it will arrive, add a word, then:
+`python3 cli/tutor.py send-due --on <a due date>`.
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|

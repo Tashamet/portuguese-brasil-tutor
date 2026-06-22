@@ -92,6 +92,17 @@ safe to share (no secrets).
 | `send-due` | deliver due reviews to Telegram |
 | `export` / `import` | git sync bundle (`sync/words.ndjson`) |
 | `stats` | progress |
+| `selftest [--lang] [--audio]` | end-to-end self-check (sandboxed) |
+| `test-telegram [--voice]` | send a test message/voice to your chat |
+
+## Verify it works
+
+```bash
+python3 cli/tutor.py selftest          # checks the whole pipeline, prints PASS/FAIL
+python3 cli/tutor.py test-telegram      # checks the bot (needs TELEGRAM_BOT_TOKEN)
+```
+
+The wiki is written in your chosen interface language (`en` / `ru` / `uk`).
 
 See [MANUAL.md](MANUAL.md) for every command, the data model, audio, sync and
 troubleshooting.

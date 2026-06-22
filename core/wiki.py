@@ -15,6 +15,59 @@ from . import paths
 
 WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 
+# Localized labels for the scaffold so the wiki is written in the learner's
+# chosen interface language. Word cards / session bodies are authored by Claude
+# directly in that language; these are the structural labels.
+LABELS = {
+    "index_title": {"en": "Brazilian Portuguese course — index",
+                    "ru": "Курс бразильского португальского — индекс",
+                    "uk": "Курс бразильської португальської — індекс"},
+    "interface_language": {"en": "Interface language", "ru": "Язык интерфейса",
+                           "uk": "Мова інтерфейсу"},
+    "learning_plan": {"en": "Learning plan", "ru": "План обучения",
+                      "uk": "План навчання"},
+    "progress": {"en": "Progress", "ru": "Прогресс", "uk": "Прогрес"},
+    "words": {"en": "Words", "ru": "Слова", "uk": "Слова"},
+    "grammar": {"en": "Grammar", "ru": "Грамматика", "uk": "Граматика"},
+    "themes": {"en": "Themes", "ru": "Темы", "uk": "Теми"},
+    "empty": {"en": "_empty_", "ru": "_пусто_", "uk": "_порожньо_"},
+    "plan_placeholder": {
+        "en": "_Agree the plan with the learner and fill in the stages._",
+        "ru": "_Согласуйте план с учеником и заполните этапы._",
+        "uk": "_Узгодьте план з учнем і заповніть етапи._"},
+    "related": {"en": "Related", "ru": "Связано", "uk": "Пов'язано"},
+    "current_stage": {"en": "Current stage", "ru": "Текущий этап",
+                      "uk": "Поточний етап"},
+    "words_known": {"en": "Words known", "ru": "Выучено слов",
+                    "uk": "Вивчено слів"},
+    "words_in_progress": {"en": "Words in progress", "ru": "В процессе",
+                          "uk": "У процесі"},
+    "due_today": {"en": "Due today", "ru": "К повторению сегодня",
+                  "uk": "До повторення сьогодні"},
+    "profile_title": {"en": "Learner profile", "ru": "Профиль ученика",
+                      "uk": "Профіль учня"},
+    "city_state": {"en": "City/state", "ru": "Город/штат", "uk": "Місто/штат"},
+    "time_in_brazil": {"en": "Time in Brazil", "ru": "Как давно в Бразилии",
+                       "uk": "Як давно в Бразилії"},
+    "region_dialect": {"en": "Region/dialect", "ru": "Регион/диалект",
+                       "uk": "Регіон/діалект"},
+    "pace": {"en": "Pace", "ru": "Темп", "uk": "Темп"},
+    "goals": {"en": "Goals", "ru": "Цели", "uk": "Цілі"},
+    "panic_zones": {"en": "Panic zones", "ru": "Зоны паники", "uk": "Зони паніки"},
+    "session": {"en": "Session", "ru": "Занятие", "uk": "Заняття"},
+}
+
+
+def _lang(interface_language: str | None) -> str:
+    lang = (interface_language or "en").lower()
+    return lang if lang in ("en", "ru", "uk") else "en"
+
+
+def t(key: str, interface_language: str | None) -> str:
+    """Translate a scaffold label into the interface language (en fallback)."""
+    entry = LABELS.get(key, {})
+    return entry.get(_lang(interface_language)) or entry.get("en") or key
+
 
 def slugify(text: str) -> str:
     """ASCII, lowercase, hyphenated slug. ``Então`` -> ``entao``."""
@@ -28,38 +81,31 @@ def slugify(text: str) -> str:
 # --- Scaffold --------------------------------------------------------------
 
 def ensure_scaffold(interface_language: str | None = None) -> None:
-    """Create the course/journal skeleton if it does not exist yet."""
+    """Create the course/journal skeleton (in the interface language) if missing."""
     paths.ensure_dirs()
-    lang = interface_language or "—"
+    lng = interface_language or "—"
     if not paths.COURSE_INDEX.exists():
-        _write(
-            paths.COURSE_INDEX,
-            f"# Brazilian Portuguese course — index\n\n"
-            f"- Interface language: **{lang}**\n"
-            f"- [[plan|Learning plan]]\n"
-            f"- [[progress|Progress]]\n\n"
-            f"## Words\n\n_empty_\n\n"
-            f"## Grammar\n\n_empty_\n\n"
-            f"## Themes\n\n_empty_\n",
-        )
+        rebuild_index(interface_language)
     if not paths.COURSE_PLAN.exists():
         _write(
             paths.COURSE_PLAN,
-            "# Learning plan\n\n_Agree the plan with the learner and fill in the stages._\n\n"
-            "Related: [[index]], [[progress]]\n",
+            f"# {t('learning_plan', interface_language)}\n\n"
+            f"{t('plan_placeholder', interface_language)}\n\n"
+            f"{t('related', interface_language)}: [[index]], [[progress]]\n",
         )
     if not paths.COURSE_PROGRESS.exists():
-        _write(
-            paths.COURSE_PROGRESS,
-            "# Progress\n\n- Current stage: —\n- Words known: 0\n- Words in progress: 0\n\n"
-            "Related: [[index]], [[plan]]\n",
-        )
+        update_progress("", 0, 0, 0, interface_language)
     if not paths.PROFILE_MD.exists():
         _write(
             paths.PROFILE_MD,
-            f"# Learner profile\n\n- Interface language: {lang}\n- City/state: —\n"
-            f"- Time in Brazil: —\n- Region/dialect: —\n- Pace: —\n"
-            f"- Goals: —\n\n## Panic zones\n\n- —\n",
+            f"# {t('profile_title', interface_language)}\n\n"
+            f"- {t('interface_language', interface_language)}: {lng}\n"
+            f"- {t('city_state', interface_language)}: —\n"
+            f"- {t('time_in_brazil', interface_language)}: —\n"
+            f"- {t('region_dialect', interface_language)}: —\n"
+            f"- {t('pace', interface_language)}: —\n"
+            f"- {t('goals', interface_language)}: —\n\n"
+            f"## {t('panic_zones', interface_language)}\n\n- —\n",
         )
 
 
@@ -82,10 +128,12 @@ def read_word_card(slug: str) -> str | None:
 
 # --- Sessions --------------------------------------------------------------
 
-def append_session(markdown: str, when: date | None = None) -> Path:
+def append_session(markdown: str, when: date | None = None,
+                   interface_language: str | None = None) -> Path:
     when = when or date.today()
     path = paths.SESSIONS_DIR / f"{when.isoformat()}.md"
-    header = f"# Session {when.isoformat()}\n\n" if not path.exists() else "\n---\n\n"
+    label = t("session", interface_language)
+    header = f"# {label} {when.isoformat()}\n\n" if not path.exists() else "\n---\n\n"
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(header + markdown.rstrip() + "\n")
     return path
@@ -108,37 +156,39 @@ def _list_stems(directory: Path) -> list[str]:
 
 def rebuild_index(interface_language: str | None = None) -> Path:
     """Regenerate ``index.md`` from what exists on disk (no broken links)."""
-    lang = interface_language or "—"
+    lng = interface_language or "—"
 
-    def section(title: str, prefix: str, stems: list[str]) -> str:
+    def section(key: str, prefix: str, stems: list[str]) -> str:
+        title = t(key, interface_language)
         if not stems:
-            return f"## {title}\n\n_empty_\n"
+            return f"## {title}\n\n{t('empty', interface_language)}\n"
         items = "\n".join(f"- [[{prefix}/{s}]]" for s in stems)
         return f"## {title}\n\n{items}\n"
 
     body = (
-        f"# Brazilian Portuguese course — index\n\n"
-        f"- Interface language: **{lang}**\n"
-        f"- [[plan|Learning plan]]\n"
-        f"- [[progress|Progress]]\n\n"
-        + section("Words", "words", _list_stems(paths.WORDS_DIR))
+        f"# {t('index_title', interface_language)}\n\n"
+        f"- {t('interface_language', interface_language)}: **{lng}**\n"
+        f"- [[plan|{t('learning_plan', interface_language)}]]\n"
+        f"- [[progress|{t('progress', interface_language)}]]\n\n"
+        + section("words", "words", _list_stems(paths.WORDS_DIR))
         + "\n"
-        + section("Grammar", "grammar", _list_stems(paths.GRAMMAR_DIR))
+        + section("grammar", "grammar", _list_stems(paths.GRAMMAR_DIR))
         + "\n"
-        + section("Themes", "themes", _list_stems(paths.THEMES_DIR))
+        + section("themes", "themes", _list_stems(paths.THEMES_DIR))
     )
     _write(paths.COURSE_INDEX, body)
     return paths.COURSE_INDEX
 
 
-def update_progress(stage: str, known: int, learning: int, due_today: int) -> Path:
+def update_progress(stage: str, known: int, learning: int, due_today: int,
+                    interface_language: str | None = None) -> Path:
     body = (
-        f"# Progress\n\n"
-        f"- Current stage: {stage or '—'}\n"
-        f"- Words known: {known}\n"
-        f"- Words in progress: {learning}\n"
-        f"- Due today: {due_today}\n\n"
-        f"Related: [[index]], [[plan]]\n"
+        f"# {t('progress', interface_language)}\n\n"
+        f"- {t('current_stage', interface_language)}: {stage or '—'}\n"
+        f"- {t('words_known', interface_language)}: {known}\n"
+        f"- {t('words_in_progress', interface_language)}: {learning}\n"
+        f"- {t('due_today', interface_language)}: {due_today}\n\n"
+        f"{t('related', interface_language)}: [[index]], [[plan]]\n"
     )
     _write(paths.COURSE_PROGRESS, body)
     return paths.COURSE_PROGRESS

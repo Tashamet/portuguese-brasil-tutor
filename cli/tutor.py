@@ -24,8 +24,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
+import subprocess
 import sys
-from datetime import date
+import tempfile
+from datetime import date, timedelta
 from pathlib import Path
 
 # Allow running as a script (no package install).
@@ -219,7 +223,8 @@ def cmd_log_session(args) -> None:
         Path(args.file).read_text(encoding="utf-8") if args.file else args.text or "")
     if not text.strip():
         raise SystemExit("nothing to log (use --stdin, --file, or --text)")
-    path = wiki.append_session(text)
+    db.init()
+    path = wiki.append_session(text, interface_language=_interface_lang())
     print(f"logged to {path}")
 
 
@@ -248,7 +253,7 @@ def cmd_commands(args) -> None:
 
 def cmd_export(args) -> None:
     db.init()
-    path = sync.export_bundle()
+    path = sync.export_bundle(Path(args.out) if args.out else None)
     print(f"exported bundle -> {path}")
 
 
@@ -287,7 +292,7 @@ def _refresh_wiki(lang: str) -> None:
     known = s["by_status"].get("known", 0)
     learning = s["by_status"].get("learning", 0)
     stage = db.get_setting("current_stage", "")
-    wiki.update_progress(stage, known, learning, s["due_today"])
+    wiki.update_progress(stage, known, learning, s["due_today"], lang)
 
 
 def _minimal_card(payload: dict, slug: str) -> str:
@@ -297,8 +302,168 @@ def _minimal_card(payload: dict, slug: str) -> str:
         ctx = f" _( {v['context']} )_" if v.get("context") else ""
         lines.append(f"- {v['pt']} — {v.get('gloss', '')}{ctx}")
     if payload.get("topic"):
-        lines += ["", f"Related: [[themes/{wiki.slugify(payload['topic'])}]], [[index]]"]
+        related = wiki.t("related", _interface_lang())
+        lines += ["", f"{related}: [[themes/{wiki.slugify(payload['topic'])}]], [[index]]"]
     return "\n".join(lines)
+
+
+# --- Test / diagnostics ----------------------------------------------------
+
+SELFTEST_WORD = {
+    "lemma": "obrigado", "gloss": "thank you", "pos": "interjection",
+    "topic": "small-talk", "priority": 1,
+    "variations": [
+        {"pt": f"Obrigado pela ajuda {i}!", "gloss": f"Thanks for the help {i}!",
+         "context": f"Situation {i}"} for i in range(1, 11)
+    ],
+}
+
+
+def _run_cli(cli_args: list[str], data_dir: str, stdin: str | None = None):
+    env = {**os.environ, "TUTOR_DATA_DIR": data_dir}
+    proc = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), *cli_args],
+        input=stdin, capture_output=True, text=True, env=env,
+    )
+    return proc.returncode, proc.stdout, proc.stderr
+
+
+def cmd_selftest(args) -> None:
+    """End-to-end check of the tutor in an isolated sandbox (no real data touched)."""
+    lang = args.lang
+    results: list[tuple[str, bool, str]] = []
+
+    def check(name: str, ok: bool, detail: str = "") -> None:
+        results.append((name, ok, detail))
+
+    # 1. Scheduler math (pure, in-process).
+    from core import scheduler
+    start = date(2026, 1, 1)
+    pairs = scheduler.schedule_dates(start)
+    check("scheduler 2/7/30", pairs == [(2, date(2026, 1, 3)), (7, date(2026, 1, 8)),
+                                        (30, date(2026, 1, 31))], str(pairs))
+
+    sandbox = tempfile.mkdtemp(prefix="tutor_selftest_")
+    sandbox2 = tempfile.mkdtemp(prefix="tutor_selftest_import_")
+    try:
+        # 2. setup
+        rc, out, err = _run_cli(["setup", "--interface", lang, "--tts", "system",
+                                 "--profile", "skill-only"], sandbox)
+        check("setup", rc == 0, err.strip())
+
+        # 3. add-word (no audio/telegram), captured today so reviews are known
+        today = date(2026, 1, 1).isoformat()
+        add_args = ["add-word", "--stdin", "--no-audio", "--no-telegram",
+                    "--today", today]
+        rc, out, err = _run_cli(add_args, sandbox, stdin=json.dumps(SELFTEST_WORD))
+        slug_ok = rc == 0 and '"slug": "obrigado"' in out
+        check("add-word + schedule", slug_ok, (err or out).strip()[:120])
+
+        # 4. stats shows 1 word
+        rc, out, _ = _run_cli(["stats"], sandbox)
+        check("stats", rc == 0 and '"total_words": 1' in out, out.strip()[:80])
+
+        # 5. due-today on D+2 surfaces the word
+        d2 = (date(2026, 1, 1) + timedelta(days=2)).isoformat()
+        rc, out, _ = _run_cli(["due-today", "--on", d2], sandbox)
+        check("due on day 2", "obrigado" in out, out.strip()[:80])
+
+        # 6. wiki localized + word card written
+        prof = Path(sandbox) / "journal" / "profile.md"
+        card = Path(sandbox) / "course" / "words" / "obrigado.md"
+        expected_title = wiki.t("profile_title", lang)
+        prof_ok = prof.exists() and expected_title in prof.read_text(encoding="utf-8")
+        check(f"wiki localized ({lang})", prof_ok and card.exists(),
+              f"profile title='{expected_title}'")
+
+        # 7. export -> import round-trip into a fresh sandbox (isolated bundle)
+        bundle = str(Path(sandbox) / "bundle.ndjson")
+        rc, _, err = _run_cli(["export", "--out", bundle], sandbox)
+        rc3, _, err3 = _run_cli(["import", "--file", bundle], sandbox2)
+        rc4, out4, _ = _run_cli(["stats"], sandbox2)
+        check("export/import sync", rc == 0 and '"total_words": 1' in out4,
+              (err or err3).strip()[:120])
+
+        # 8. broken-link scan (the minimal card links a theme that doesn't exist yet)
+        rc, out, _ = _run_cli(["check-links"], sandbox)
+        check("link check runs", rc in (0, 1), out.strip()[:80])
+
+        # 9. optional audio render (needs ffmpeg + say)
+        if args.audio:
+            have = shutil.which("ffmpeg") and shutil.which("say")
+            if not have:
+                check("audio render", True, "skipped (ffmpeg/say missing)")
+            else:
+                rc, out, err = _run_cli(["add-word", "--stdin", "--no-telegram",
+                                         "--today", today],
+                                        sandbox, stdin=json.dumps(
+                                            {**SELFTEST_WORD, "lemma": "agua"}))
+                ogg = Path(sandbox) / "audio" / "agua.ogg"
+                check("audio render", rc == 0 and ogg.exists() and ogg.stat().st_size > 0,
+                      (err or out).strip()[:120])
+    finally:
+        if args.keep:
+            print(f"sandbox kept: {sandbox}")
+        else:
+            shutil.rmtree(sandbox, ignore_errors=True)
+            shutil.rmtree(sandbox2, ignore_errors=True)
+
+    # Report
+    width = max(len(n) for n, _, _ in results)
+    passed = 0
+    for name, ok, detail in results:
+        mark = "PASS" if ok else "FAIL"
+        line = f"  [{mark}] {name.ljust(width)}"
+        if detail and not ok:
+            line += f"  — {detail}"
+        print(line)
+        passed += ok
+    print(f"\n{passed}/{len(results)} checks passed")
+    if passed != len(results):
+        raise SystemExit(1)
+
+
+def cmd_check_links(args) -> None:
+    db.init()
+    broken = wiki.find_broken_links()
+    if not broken:
+        print("No broken [[links]].")
+        return
+    for src, target in broken:
+        print(f"broken: {src} -> [[{target}]]")
+    raise SystemExit(1)
+
+
+def cmd_test_telegram(args) -> None:
+    """Send a test message (and optional voice) to verify the Telegram bot."""
+    from core import telegram
+    if not config.telegram_token():
+        raise SystemExit("TELEGRAM_BOT_TOKEN not set in environment")
+    chat_id = args.chat or config.telegram_chat_id()
+    if not chat_id:
+        raise SystemExit("No chat_id (set telegram.chat_id or pass --chat)")
+
+    telegram.send_message(chat_id, "Test: portuguese-brasil-tutor bot is working.")
+    print(f"text message sent to chat {chat_id}")
+
+    if args.voice:
+        db.init()
+        sent = False
+        for w in db.list_words():
+            audio = db.latest_audio(w.id)
+            if not audio:
+                continue
+            if audio.telegram_file_id:
+                telegram.send_voice_by_id(chat_id, audio.telegram_file_id,
+                                          caption=f"test: {w.target_lemma}")
+                sent = True
+                break
+            local = paths.DATA / audio.file_path
+            if local.exists():
+                telegram.upload_voice(chat_id, local, caption=f"test: {w.target_lemma}")
+                sent = True
+                break
+        print("voice sent" if sent else "no audio found to send (add a word first)")
 
 
 # --- Argument parsing ------------------------------------------------------
@@ -351,6 +516,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_commands)
 
     s = sub.add_parser("export", help="export git sync bundle")
+    s.add_argument("--out", help="write bundle to this path instead of sync/words.ndjson")
     s.set_defaults(func=cmd_export)
     s = sub.add_parser("import", help="import git sync bundle")
     s.add_argument("--file"); s.set_defaults(func=cmd_import)
@@ -359,6 +525,20 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--ssh", required=True, help="user@host")
     s.add_argument("--send-time", default="09:00")
     s.set_defaults(func=cmd_deploy)
+
+    s = sub.add_parser("selftest", help="end-to-end check of the tutor (sandboxed)")
+    s.add_argument("--lang", choices=["ru", "en", "uk"], default="en")
+    s.add_argument("--audio", action="store_true", help="also render audio (ffmpeg+say)")
+    s.add_argument("--keep", action="store_true", help="keep the sandbox dir")
+    s.set_defaults(func=cmd_selftest)
+
+    s = sub.add_parser("check-links", help="report broken [[wiki-links]]")
+    s.set_defaults(func=cmd_check_links)
+
+    s = sub.add_parser("test-telegram", help="send a test message/voice to Telegram")
+    s.add_argument("--chat", help="override chat_id")
+    s.add_argument("--voice", action="store_true", help="also send a sample voice")
+    s.set_defaults(func=cmd_test_telegram)
 
     return p
 

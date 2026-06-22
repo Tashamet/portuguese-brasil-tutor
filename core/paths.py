@@ -46,10 +46,13 @@ COMMANDS_MD = JOURNAL_DIR / "commands.md"
 SYNC_DIR = PKG_ROOT / "sync"
 SYNC_BUNDLE = SYNC_DIR / "words.ndjson"
 
-# Config.
+# Config. The example + profiles live in the package; the active config.yaml is
+# per-instance — it follows the data dir when TUTOR_DATA_DIR is overridden, so a
+# relocated instance (or a sandboxed selftest) keeps its own config.
 CONFIG_DIR = PKG_ROOT / "config"
-CONFIG_PATH = CONFIG_DIR / "config.yaml"
 CONFIG_EXAMPLE = CONFIG_DIR / "config.example.yaml"
+CONFIG_PATH = (DATA / "config.yaml") if os.environ.get("TUTOR_DATA_DIR") \
+    else CONFIG_DIR / "config.yaml"
 
 
 def ensure_dirs() -> None:
